@@ -1,1 +1,0 @@
-import{r as e}from"./useRouter-BfOmrYv_.js";import{qn as t}from"./index-knan3U1x.js";var n=e(),r=()=>(0,n.jsx)(t,{to:`/auth/login`,replace:!0});export{r as component};

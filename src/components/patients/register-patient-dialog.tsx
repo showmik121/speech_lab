@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, ImagePlus, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -23,13 +23,10 @@ import {
   BLOOD_GROUPS,
   GENDERS,
   GUARDIAN_RELATIONS,
-  PAYMENT_TYPES,
-  PROGRAM_OPTIONS_BY_THERAPY,
-  THERAPISTS,
-  THERAPY_TYPES,
   calculateAge,
 } from "@/constants/patient-data";
-import { PAYMENT_PACKAGES, findPackage, type PaymentPackage } from "@/constants/payment-data";
+import { PAYMENT_PACKAGES } from "@/constants/payment-data";
+import { THERAPY_TYPES } from "@/constants/therapy-types";
 import { formatTaka } from "@/constants/dashboard-data";
 import { addRevenueTransaction } from "@/lib/revenue-store";
 
@@ -56,34 +53,21 @@ export function RegisterPatientDialog({
   const [submitting, setSubmitting] = useState(false);
   const [dob, setDob] = useState("");
 
-  const [therapyType, setTherapyType] = useState("");
-  const [programme, setProgramme] = useState("");
-  const [paymentType, setPaymentType] = useState("");
-  const [packageId, setPackageId] = useState("");
+  const [serviceType, setServiceType] = useState<"package" | "therapy">("package");
+  const [selectedServiceId, setSelectedServiceId] = useState<string>("");
 
   const age = useMemo(() => calculateAge(dob), [dob]);
 
-  const programmeOptions = useMemo(
-    () => (therapyType ? (PROGRAM_OPTIONS_BY_THERAPY[therapyType] ?? []) : []),
-    [therapyType],
-  );
-
-  const packageOptions = useMemo(
-    () => PAYMENT_PACKAGES.filter((item) => item.status === "Active" && item.type === paymentType),
-    [paymentType],
-  );
-
-  const selectedPackage = useMemo(() => findPackage(packageId), [packageId]);
-
-  const handleTherapyTypeChange = (value: string) => {
-    setTherapyType(value);
-    setProgramme("");
-  };
-
-  const handlePaymentTypeChange = (value: string) => {
-    setPaymentType(value);
-    setPackageId("");
-  };
+  const selectedServicePrice = useMemo(() => {
+    if (!selectedServiceId) return undefined;
+    if (serviceType === "package") {
+      const pkg = PAYMENT_PACKAGES.find((p) => p.id === selectedServiceId || p.name === selectedServiceId);
+      return pkg ? pkg.price : undefined;
+    } else {
+      const thr = THERAPY_TYPES.find((t) => t.id === selectedServiceId || t.name === selectedServiceId);
+      return thr && thr.fees.length > 0 ? thr.fees[0].price : undefined;
+    }
+  }, [serviceType, selectedServiceId]);
 
   const close = () => {
     onOpenChange(false);
@@ -92,7 +76,7 @@ export function RegisterPatientDialog({
 
   const submit = () => {
     setSubmitting(true);
-    const amount = selectedPackage ? selectedPackage.price + selectedPackage.registrationFee : 15000;
+    const amount = selectedServicePrice ?? 15000;
     addRevenueTransaction({
       patientOrCustomerName: "Newly Registered Patient",
       category: "Patient Enrollment",
@@ -100,7 +84,7 @@ export function RegisterPatientDialog({
       paidAmount: amount,
       dueAmount: 0,
       method: "Mobile Banking",
-      remarks: selectedPackage ? `Enrolled in ${selectedPackage.name}` : "Patient Enrollment & Registration Fee",
+      remarks: "Patient Enrollment & Registration Fee",
     });
     setTimeout(() => {
       setSubmitting(false);
@@ -176,20 +160,16 @@ export function RegisterPatientDialog({
           <StepMedical />
         ) : step === 4 ? (
           <StepProgramme
-            therapyType={therapyType}
-            onTherapyTypeChange={handleTherapyTypeChange}
-            programme={programme}
-            onProgrammeChange={setProgramme}
-            programmeOptions={programmeOptions}
+            serviceType={serviceType}
+            onServiceTypeChange={setServiceType}
+            selectedServiceId={selectedServiceId}
+            onSelectedServiceIdChange={setSelectedServiceId}
           />
         ) : (
           <StepPayment
-            paymentType={paymentType}
-            onPaymentTypeChange={handlePaymentTypeChange}
-            packageId={packageId}
-            onPackageIdChange={setPackageId}
-            packageOptions={packageOptions}
-            selectedPackage={selectedPackage}
+            selectedServicePrice={selectedServicePrice}
+            selectedServiceId={selectedServiceId}
+            serviceType={serviceType}
           />
         )}
 
@@ -391,194 +371,287 @@ function StepMedical() {
 }
 
 function StepProgramme({
-  therapyType,
-  onTherapyTypeChange,
-  programme,
-  onProgrammeChange,
-  programmeOptions,
+  serviceType,
+  onServiceTypeChange,
+  selectedServiceId,
+  onSelectedServiceIdChange,
 }: {
-  therapyType: string;
-  onTherapyTypeChange: (value: string) => void;
-  programme: string;
-  onProgrammeChange: (value: string) => void;
-  programmeOptions: string[];
+  serviceType: "package" | "therapy";
+  onServiceTypeChange: (val: "package" | "therapy") => void;
+  selectedServiceId: string;
+  onSelectedServiceIdChange: (val: string) => void;
 }) {
+  const handleServiceTypeChange = (value: "package" | "therapy") => {
+    onServiceTypeChange(value);
+    onSelectedServiceIdChange("");
+  };
+
   return (
-    <div className="grid gap-5 py-2 sm:grid-cols-2">
-      <FormField id="therapy-type" label="Therapy type" required>
-        <Select value={therapyType} onValueChange={onTherapyTypeChange}>
-          <SelectTrigger id="therapy-type">
-            <SelectValue placeholder="Select therapy type" />
+    <div className="space-y-5 py-2">
+      {/* 2 Selectable Cards: Left (Package), Right (Therapy) */}
+      <div className="grid grid-cols-2 gap-4">
+        <button
+          type="button"
+          onClick={() => handleServiceTypeChange("package")}
+          className={cn(
+            "flex h-20 items-center justify-center rounded-xl border-2 p-4 text-center transition-all cursor-pointer",
+            serviceType === "package"
+              ? "border-primary bg-primary/10 text-primary font-bold shadow-sm"
+              : "border-border bg-card text-muted-foreground hover:border-muted-foreground/30 hover:bg-muted/30"
+          )}
+        >
+          <span className="text-base font-semibold">Package</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleServiceTypeChange("therapy")}
+          className={cn(
+            "flex h-20 items-center justify-center rounded-xl border-2 p-4 text-center transition-all cursor-pointer",
+            serviceType === "therapy"
+              ? "border-primary bg-primary/10 text-primary font-bold shadow-sm"
+              : "border-border bg-card text-muted-foreground hover:border-muted-foreground/30 hover:bg-muted/30"
+          )}
+        >
+          <span className="text-base font-semibold">Therapy</span>
+        </button>
+      </div>
+
+      {/* Services dropdown (Full Width below cards) */}
+      <FormField id="services-dropdown" label="Services" required className="w-full">
+        <Select
+          value={selectedServiceId}
+          onValueChange={(val) => onSelectedServiceIdChange(val)}
+        >
+          <SelectTrigger id="services-dropdown" className="w-full">
+            <SelectValue
+              placeholder={
+                serviceType === "package" ? "Select package service..." : "Select therapy service..."
+              }
+            />
           </SelectTrigger>
           <SelectContent>
-            {THERAPY_TYPES.map((type) => (
-              <SelectItem key={type} value={type}>
-                {type}
-              </SelectItem>
-            ))}
+            {serviceType === "package"
+              ? PAYMENT_PACKAGES.map((pkg) => (
+                  <SelectItem key={pkg.id} value={pkg.id}>
+                    {pkg.name}
+                  </SelectItem>
+                ))
+              : THERAPY_TYPES.map((thr) => (
+                  <SelectItem key={thr.id} value={thr.id}>
+                    {thr.name}
+                  </SelectItem>
+                ))}
           </SelectContent>
         </Select>
-      </FormField>
-      <FormField
-        id="programme"
-        label="Programme"
-        hint={
-          therapyType
-            ? "Programmes shown for the selected therapy type"
-            : "Select a therapy type first"
-        }
-        required
-      >
-        <Select value={programme} onValueChange={onProgrammeChange} disabled={!therapyType}>
-          <SelectTrigger id="programme">
-            <SelectValue placeholder="Select programme" />
-          </SelectTrigger>
-          <SelectContent>
-            {programmeOptions.map((item) => (
-              <SelectItem key={item} value={item}>
-                {item}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FormField>
-      <FormField id="assessment-date" label="Assessment date" required>
-        <Input id="assessment-date" type="date" />
-      </FormField>
-      <FormField
-        id="assigned-therapist"
-        label="Assigned therapist"
-        hint="Live availability arrives with the scheduling module"
-      >
-        <Select>
-          <SelectTrigger id="assigned-therapist">
-            <SelectValue placeholder="Select therapist" />
-          </SelectTrigger>
-          <SelectContent>
-            {THERAPISTS.map((therapist) => (
-              <SelectItem key={therapist} value={therapist}>
-                {therapist}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FormField>
-      <FormField id="expected-start" label="Expected start date" className="sm:col-span-2">
-        <Input id="expected-start" type="date" />
       </FormField>
     </div>
   );
 }
 
 function StepPayment({
-  paymentType,
-  onPaymentTypeChange,
-  packageId,
-  onPackageIdChange,
-  packageOptions,
-  selectedPackage,
+  selectedServicePrice,
+  selectedServiceId,
+  serviceType,
 }: {
-  paymentType: string;
-  onPaymentTypeChange: (value: string) => void;
-  packageId: string;
-  onPackageIdChange: (value: string) => void;
-  packageOptions: PaymentPackage[];
-  selectedPackage?: PaymentPackage;
+  selectedServicePrice?: number;
+  selectedServiceId?: string;
+  serviceType?: "package" | "therapy";
 }) {
-  const discountedPrice = selectedPackage
-    ? Math.round(selectedPackage.price * (1 - selectedPackage.discount / 100))
-    : 0;
-  const registrationFee = selectedPackage?.registrationFee ?? 0;
-  const totalPayable = discountedPrice + registrationFee;
+  // Monthly plans only get Monthly or Full Payment (no Installment)
+  const MONTHLY_PLAN_IDS = ["monthly-individual", "monthly-group"];
+  const isMonthlyPlan =
+    serviceType === "package" && !!selectedServiceId && MONTHLY_PLAN_IDS.includes(selectedServiceId);
+
+  const [totalAmount, setTotalAmount] = useState<string>(
+    selectedServicePrice ? selectedServicePrice.toString() : ""
+  );
+  const [paymentType, setPaymentType] = useState<"Full Payment" | "Monthly" | "Installment">(
+    isMonthlyPlan ? "Monthly" : "Full Payment"
+  );
+  const [firstPayment, setFirstPayment] = useState<string>("");
+  const [paymentMethod, setPaymentMethod] = useState<string>("");
+
+  useEffect(() => {
+    if (selectedServicePrice) {
+      setTotalAmount(selectedServicePrice.toString());
+    }
+  }, [selectedServicePrice]);
+
+  // When the selected service switches to/from a monthly plan, reset payment type
+  useEffect(() => {
+    if (isMonthlyPlan) {
+      setPaymentType("Monthly");
+    } else {
+      setPaymentType("Full Payment");
+    }
+    setFirstPayment("");
+  }, [isMonthlyPlan]);
+
+  const numericTotal = parseFloat(totalAmount) || 0;
+  // For Monthly: first payment entered; for Full Payment: total is paid upfront; for Installment: first payment entered
+  const numericFirst =
+    paymentType === "Full Payment"
+      ? numericTotal
+      : parseFloat(firstPayment) || 0;
+  const numericDue = Math.max(0, numericTotal - numericFirst);
+  const installmentPeriodAmount = Math.max(0, numericDue / 2);
 
   return (
-    <div className="grid gap-5 py-2 sm:grid-cols-2">
-      <FormField id="payment-type" label="Payment type" required>
-        <Select value={paymentType} onValueChange={onPaymentTypeChange}>
-          <SelectTrigger id="payment-type">
-            <SelectValue placeholder="Select payment type" />
-          </SelectTrigger>
-          <SelectContent>
-            {PAYMENT_TYPES.map((type) => (
-              <SelectItem key={type} value={type}>
-                {type}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FormField>
-      <FormField
-        id="package"
-        label="Package"
-        hint={
-          paymentType
-            ? `${packageOptions.length} active package${packageOptions.length === 1 ? "" : "s"} for ${paymentType}`
-            : "Select a payment type first"
-        }
-        required
-      >
-        <Select value={packageId} onValueChange={onPackageIdChange} disabled={!paymentType}>
-          <SelectTrigger id="package">
-            <SelectValue placeholder="Select package" />
-          </SelectTrigger>
-          <SelectContent>
-            {packageOptions.map((option) => (
-              <SelectItem key={option.id} value={option.id}>
-                {option.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FormField>
-      <FormField
-        id="registration-fee"
-        label="Registration fee (৳)"
-        hint="Calculated automatically from the selected package"
-        required
-      >
-        <Input
-          id="registration-fee"
-          type="number"
-          readOnly
-          value={registrationFee || ""}
-          placeholder="—"
-          min={0}
-          className="bg-muted/40"
-        />
-      </FormField>
-      <FormField id="payment-remarks" label="Remarks">
-        <Input id="payment-remarks" placeholder="e.g. Guardian pays by bKash" />
-      </FormField>
+    <div className="space-y-5 py-2">
+      <div className="grid gap-5 sm:grid-cols-2">
+        {/* Total Amount */}
+        <FormField id="total-amount" label="Total Amount (৳)" required>
+          <Input
+            id="total-amount"
+            type="number"
+            placeholder="e.g. 18500"
+            value={totalAmount}
+            onChange={(e) => setTotalAmount(e.target.value)}
+          />
+        </FormField>
 
-      {selectedPackage ? (
-        <div className="rounded-lg border border-border bg-muted/30 p-4 sm:col-span-2">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-[13px] font-medium text-foreground">{selectedPackage.name}</p>
-            <span className="text-[12.5px] text-muted-foreground">
-              {selectedPackage.type} · {selectedPackage.sessions} session
-              {selectedPackage.sessions === 1 ? "" : "s"} · {selectedPackage.durationLabel}
+        {/* Payment Type */}
+        <FormField id="payment-type" label="Payment Type" required>
+          <Select
+            value={paymentType}
+            onValueChange={(val) => {
+              setPaymentType(val as "Full Payment" | "Monthly" | "Installment");
+              setFirstPayment("");
+            }}
+          >
+            <SelectTrigger id="payment-type">
+              <SelectValue placeholder="Select payment type" />
+            </SelectTrigger>
+            <SelectContent>
+              {isMonthlyPlan ? (
+                // Monthly plan packages: only Monthly or Full Payment
+                <>
+                  <SelectItem value="Monthly">Monthly</SelectItem>
+                  <SelectItem value="Full Payment">Full Payment</SelectItem>
+                </>
+              ) : (
+                // Other packages/therapies: all three options
+                <>
+                  <SelectItem value="Monthly">Monthly</SelectItem>
+                  <SelectItem value="Full Payment">Full Payment</SelectItem>
+                  <SelectItem value="Installment">Installment (3 Periods)</SelectItem>
+                </>
+              )}
+            </SelectContent>
+          </Select>
+        </FormField>
+
+        {/* First Payment — only for Installment (not Monthly, not Full Payment) */}
+        {paymentType === "Installment" ? (
+          <>
+            <FormField id="first-payment" label="First Payment (Period 1)" required>
+              <Input
+                id="first-payment"
+                type="number"
+                placeholder="e.g. 6500"
+                value={firstPayment}
+                onChange={(e) => setFirstPayment(e.target.value)}
+              />
+            </FormField>
+            <FormField id="due-payment" label="Due Payment" hint="Calculated automatically">
+              <Input
+                id="due-payment"
+                type="number"
+                readOnly
+                placeholder="0"
+                value={numericDue}
+                className="bg-muted/40 font-semibold text-amber-600 dark:text-amber-400"
+              />
+            </FormField>
+          </>
+        ) : paymentType === "Full Payment" ? (
+          <FormField id="due-payment-full" label="Due Payment">
+            <Input
+              id="due-payment-full"
+              readOnly
+              value="0"
+              className="bg-muted/40 font-semibold text-emerald-600 dark:text-emerald-400"
+            />
+          </FormField>
+        ) : null /* Monthly: no Due Payment field */}
+
+        {/* Payment Method */}
+        <FormField
+          id="payment-method"
+          label="Payment Method"
+          required
+          className={paymentType === "Installment" ? "sm:col-span-2" : ""}
+        >
+          <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+            <SelectTrigger id="payment-method">
+              <SelectValue placeholder="Select payment method" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Cash">Cash</SelectItem>
+              <SelectItem value="Bkash">Bkash</SelectItem>
+              <SelectItem value="Nagad">Nagad</SelectItem>
+              <SelectItem value="Mobile Banking">Mobile Banking</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormField>
+      </div>
+
+      {/* Monthly Payment Schedule Policy card */}
+      {paymentType === "Monthly" ? (
+        <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-[13.5px] font-semibold text-primary">
+              Monthly Payment Schedule Policy
+            </p>
+            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+              Days 1–5 of each month
             </span>
           </div>
-          <dl className="mt-3 grid gap-2 text-[12.5px] sm:grid-cols-4">
-            <div>
-              <dt className="text-muted-foreground">Package price</dt>
-              <dd className="font-medium text-foreground">{formatTaka(selectedPackage.price)}</dd>
+          <p className="text-[12.5px] text-muted-foreground">
+            Monthly payments must be settled within the{" "}
+            <strong>1st to 5th day</strong> of every month.
+          </p>
+          <div className="rounded-lg border border-border bg-background p-2.5 text-[12.5px]">
+            <span className="text-muted-foreground block text-[11px]">Total Monthly Fee</span>
+            <span className="font-bold text-foreground">{formatTaka(numericTotal)}</span>
+          </div>
+        </div>
+      ) : paymentType === "Installment" ? (
+        /* 3-Period Installment Breakdown */
+        <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+          <p className="text-[13px] font-semibold text-foreground">
+            3-Period Installment Schedule Breakdown
+          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                Period 1 (First Payment)
+              </p>
+              <p className="mt-1 text-[16px] font-bold text-primary">
+                {formatTaka(numericFirst)}
+              </p>
+              <span className="text-[11px] text-success font-medium">Due Today</span>
             </div>
-            <div>
-              <dt className="text-muted-foreground">Discount</dt>
-              <dd className="font-medium text-foreground">
-                {selectedPackage.discount > 0 ? `${selectedPackage.discount}%` : "—"}
-              </dd>
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                Period 2 (Installment 2)
+              </p>
+              <p className="mt-1 text-[16px] font-bold text-foreground">
+                {formatTaka(installmentPeriodAmount)}
+              </p>
+              <span className="text-[11px] text-muted-foreground">Due in 30 Days</span>
             </div>
-            <div>
-              <dt className="text-muted-foreground">Registration fee</dt>
-              <dd className="font-medium text-foreground">{formatTaka(registrationFee)}</dd>
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                Period 3 (Installment 3)
+              </p>
+              <p className="mt-1 text-[16px] font-bold text-foreground">
+                {formatTaka(installmentPeriodAmount)}
+              </p>
+              <span className="text-[11px] text-muted-foreground">Due in 60 Days</span>
             </div>
-            <div>
-              <dt className="text-muted-foreground">Total payable</dt>
-              <dd className="font-semibold text-primary">{formatTaka(totalPayable)}</dd>
-            </div>
-          </dl>
+          </div>
         </div>
       ) : null}
     </div>
