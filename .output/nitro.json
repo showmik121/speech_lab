@@ -1,5 +1,9 @@
 {
+<<<<<<< HEAD
   "date": "2026-08-12T18:46:20.460Z",
+=======
+  "date": "2026-08-12T18:49:18.861Z",
+>>>>>>> 42465d2bbafaac438a3b4db4c76db2227d975ff1
   "preset": "cloudflare-module",
   "framework": {
     "name": "nitro",

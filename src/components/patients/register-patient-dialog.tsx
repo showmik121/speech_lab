@@ -459,7 +459,7 @@ function StepPayment({
   selectedServiceId?: string;
   serviceType?: "package" | "therapy";
 }) {
-  // Monthly plans only get Monthly or Full Payment (no Installment)
+  const isTherapy = serviceType === "therapy";
   const MONTHLY_PLAN_IDS = ["monthly-individual", "monthly-group"];
   const isMonthlyPlan =
     serviceType === "package" && !!selectedServiceId && MONTHLY_PLAN_IDS.includes(selectedServiceId);
@@ -472,10 +472,16 @@ function StepPayment({
   const [totalAmount, setTotalAmount] = useState<string>(
     selectedServicePrice ? selectedServicePrice.toString() : ""
   );
+<<<<<<< HEAD
   const [paymentType, setPaymentType] = useState<"Full Payment" | "Monthly" | "Installment">(() => {
     if (isMonthlyPlan) return "Monthly";
     return "Full Payment"; // Screening, Assessment, and all others
   });
+=======
+  const [paymentType, setPaymentType] = useState<"Full Payment" | "Monthly" | "Installment">(
+    isTherapy ? "Full Payment" : isMonthlyPlan ? "Monthly" : "Full Payment"
+  );
+>>>>>>> 42465d2bbafaac438a3b4db4c76db2227d975ff1
   const [firstPayment, setFirstPayment] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<string>("");
 
@@ -485,20 +491,30 @@ function StepPayment({
     }
   }, [selectedServicePrice]);
 
+<<<<<<< HEAD
   // When the selected service changes, reset payment type appropriately
+=======
+  // When switching serviceType or serviceId, reset payment type appropriately
+>>>>>>> 42465d2bbafaac438a3b4db4c76db2227d975ff1
   useEffect(() => {
-    if (isMonthlyPlan) {
+    if (isTherapy) {
+      setPaymentType("Full Payment");
+    } else if (isMonthlyPlan) {
       setPaymentType("Monthly");
     } else {
       // Screening, Assessment, and all others default to Full Payment
       setPaymentType("Full Payment");
     }
     setFirstPayment("");
+<<<<<<< HEAD
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedServiceId, serviceType]);
+=======
+  }, [isTherapy, isMonthlyPlan]);
+>>>>>>> 42465d2bbafaac438a3b4db4c76db2227d975ff1
 
   const numericTotal = parseFloat(totalAmount) || 0;
-  // For Monthly: first payment entered; for Full Payment: total is paid upfront; for Installment: first payment entered
+  // For Full Payment & Therapy: total is paid upfront with 0 due amount
   const numericFirst =
     paymentType === "Full Payment"
       ? numericTotal
@@ -528,12 +544,16 @@ function StepPayment({
               setPaymentType(val as "Full Payment" | "Monthly" | "Installment");
               setFirstPayment("");
             }}
+            disabled={isTherapy}
           >
             <SelectTrigger id="payment-type">
               <SelectValue placeholder="Select payment type" />
             </SelectTrigger>
             <SelectContent>
-              {isMonthlyPlan ? (
+              {isTherapy ? (
+                // Therapy selection: strictly Full Payment only (No due payment)
+                <SelectItem value="Full Payment">Full Payment (No Due)</SelectItem>
+              ) : isMonthlyPlan ? (
                 // Monthly plan packages: only Monthly or Full Payment
                 <>
                   <SelectItem value="Monthly">Monthly</SelectItem>
@@ -546,10 +566,10 @@ function StepPayment({
                   <SelectItem value="Installment">Installment (3 Periods)</SelectItem>
                 </>
               ) : (
-                // Other packages/therapies: all three options
+                // Other packages: Full Payment, Monthly, Installment
                 <>
-                  <SelectItem value="Monthly">Monthly</SelectItem>
                   <SelectItem value="Full Payment">Full Payment</SelectItem>
+                  <SelectItem value="Monthly">Monthly</SelectItem>
                   <SelectItem value="Installment">Installment (3 Periods)</SelectItem>
                 </>
               )}
