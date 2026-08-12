@@ -167,6 +167,7 @@ export function RegisterPatientDialog({
           />
         ) : (
           <StepPayment
+            key={`${serviceType}-${selectedServiceId}`}
             selectedServicePrice={selectedServicePrice}
             selectedServiceId={selectedServiceId}
             serviceType={serviceType}
@@ -463,12 +464,18 @@ function StepPayment({
   const isMonthlyPlan =
     serviceType === "package" && !!selectedServiceId && MONTHLY_PLAN_IDS.includes(selectedServiceId);
 
+  // Screening & Assessment: no Monthly option — only Full Payment and Installment
+  const NO_MONTHLY_IDS = ["screening", "assessment"];
+  const isNoMonthlyPlan =
+    serviceType === "package" && !!selectedServiceId && NO_MONTHLY_IDS.includes(selectedServiceId);
+
   const [totalAmount, setTotalAmount] = useState<string>(
     selectedServicePrice ? selectedServicePrice.toString() : ""
   );
-  const [paymentType, setPaymentType] = useState<"Full Payment" | "Monthly" | "Installment">(
-    isMonthlyPlan ? "Monthly" : "Full Payment"
-  );
+  const [paymentType, setPaymentType] = useState<"Full Payment" | "Monthly" | "Installment">(() => {
+    if (isMonthlyPlan) return "Monthly";
+    return "Full Payment"; // Screening, Assessment, and all others
+  });
   const [firstPayment, setFirstPayment] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<string>("");
 
@@ -478,15 +485,17 @@ function StepPayment({
     }
   }, [selectedServicePrice]);
 
-  // When the selected service switches to/from a monthly plan, reset payment type
+  // When the selected service changes, reset payment type appropriately
   useEffect(() => {
     if (isMonthlyPlan) {
       setPaymentType("Monthly");
     } else {
+      // Screening, Assessment, and all others default to Full Payment
       setPaymentType("Full Payment");
     }
     setFirstPayment("");
-  }, [isMonthlyPlan]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedServiceId, serviceType]);
 
   const numericTotal = parseFloat(totalAmount) || 0;
   // For Monthly: first payment entered; for Full Payment: total is paid upfront; for Installment: first payment entered
@@ -529,6 +538,12 @@ function StepPayment({
                 <>
                   <SelectItem value="Monthly">Monthly</SelectItem>
                   <SelectItem value="Full Payment">Full Payment</SelectItem>
+                </>
+              ) : isNoMonthlyPlan ? (
+                // Screening & Assessment: only Full Payment or Installment
+                <>
+                  <SelectItem value="Full Payment">Full Payment</SelectItem>
+                  <SelectItem value="Installment">Installment (3 Periods)</SelectItem>
                 </>
               ) : (
                 // Other packages/therapies: all three options

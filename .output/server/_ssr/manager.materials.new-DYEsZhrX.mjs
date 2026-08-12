@@ -4,8 +4,8 @@ import { K as Plus, Sn as ArrowLeft, ln as Boxes } from "../_libs/lucide-react.m
 import { v as Link } from "../_libs/@tanstack/react-router+[...].mjs";
 import { p as require_jsx_runtime } from "../_libs/@radix-ui/react-avatar+[...].mjs";
 import { t as Button } from "./button-Bq9dlKOW.mjs";
-import { t as Card } from "./card-e-zh1EWu.mjs";
 import { t as PageHeader } from "./page-header-B70tvyWu.mjs";
+import { t as Card } from "./card-e-zh1EWu.mjs";
 import { n as CategoryCards, r as LowStockPanel, t as AddMaterialDialog } from "./add-material-dialog-favPFcPR.mjs";
 //#region node_modules/.nitro/vite/services/ssr/assets/manager.materials.new-DYEsZhrX.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
