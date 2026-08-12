@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 d3e98a73d8da17b89497ac66c96758619c0ced25 showmik121 <showmik232@gmail.com> 1786476759 +0600	commit (initial): remove extra thing from package
+d3e98a73d8da17b89497ac66c96758619c0ced25 2b072620debd1594b60e01be1bb61511ef4f72dd showmik121 <showmik232@gmail.com> 1786476923 +0600	pull origin main --rebase (start): checkout 2b072620debd1594b60e01be1bb61511ef4f72dd
+2b072620debd1594b60e01be1bb61511ef4f72dd 449abc13d68ccda95576cb3d72a909cb7b05a6fe showmik121 <showmik232@gmail.com> 1786477029 +0600	rebase (continue): remove extra thing from package
+449abc13d68ccda95576cb3d72a909cb7b05a6fe 449abc13d68ccda95576cb3d72a909cb7b05a6fe showmik121 <showmik232@gmail.com> 1786477088 +0600	rebase (finish): returning to refs/heads/master
+449abc13d68ccda95576cb3d72a909cb7b05a6fe 449abc13d68ccda95576cb3d72a909cb7b05a6fe showmik121 <showmik232@gmail.com> 1786477492 +0600	checkout: moving from master to 449abc1
+449abc13d68ccda95576cb3d72a909cb7b05a6fe 2b072620debd1594b60e01be1bb61511ef4f72dd showmik121 <showmik232@gmail.com> 1786478333 +0600	reset: moving to HEAD~1
+2b072620debd1594b60e01be1bb61511ef4f72dd 2725bc6252df3845a85c9b25d34a0f728246067e showmik121 <showmik232@gmail.com> 1786478473 +0600	commit: recover
+2725bc6252df3845a85c9b25d34a0f728246067e 0e31c5f43fc46b1bbeb0f9e3152230616148fcb7 showmik121 <showmik232@gmail.com> 1786481382 +0600	commit: addrevenue and expese
