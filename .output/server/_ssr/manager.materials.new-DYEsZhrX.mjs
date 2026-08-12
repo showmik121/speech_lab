@@ -1,6 +1,6 @@
 import { i as __toESM } from "../_runtime.mjs";
 import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
-import { K as Plus, Sn as ArrowLeft, ln as Boxes } from "../_libs/lucide-react.mjs";
+import { G as Plus, bn as ArrowLeft, sn as Boxes } from "../_libs/lucide-react.mjs";
 import { v as Link } from "../_libs/@tanstack/react-router+[...].mjs";
 import { p as require_jsx_runtime } from "../_libs/@radix-ui/react-avatar+[...].mjs";
 import { t as Button } from "./button-Bq9dlKOW.mjs";
