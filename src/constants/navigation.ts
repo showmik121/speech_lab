@@ -11,7 +11,6 @@ import {
   PhoneCall,
   Receipt,
   ShieldCheck,
-  ShoppingCart,
   TrendingDown,
   TrendingUp,
   Users,
@@ -56,9 +55,7 @@ export const NAVIGATION: Record<WorkspaceKey, NavSection[]> = {
   "super-admin": [
     {
       title: "Workspace",
-      items: [
-        { label: "Dashboard", icon: Gauge, to: "/super-admin/dashboard" },
-      ],
+      items: [{ label: "Dashboard", icon: Gauge, to: "/super-admin/dashboard" }],
     },
     {
       title: "Modules",
@@ -80,9 +77,7 @@ export const NAVIGATION: Record<WorkspaceKey, NavSection[]> = {
   manager: [
     {
       title: "Workspace",
-      items: [
-        { label: "Dashboard", icon: Gauge, to: "/manager/dashboard" },
-      ],
+      items: [{ label: "Dashboard", icon: Gauge, to: "/manager/dashboard" }],
     },
     {
       title: "Modules",
@@ -94,7 +89,6 @@ export const NAVIGATION: Record<WorkspaceKey, NavSection[]> = {
         { label: "Packages", icon: Receipt, to: "/manager/packages" },
         { label: "Follow-up", icon: PhoneCall, to: "/manager/follow-up" },
         { label: "Materials", icon: Boxes, to: "/manager/materials" },
-        { label: "Sales", icon: ShoppingCart, to: "/manager/sales" },
 
         { label: "Scheduling", icon: CalendarDays, disabled: true, badge: "Soon" },
 
