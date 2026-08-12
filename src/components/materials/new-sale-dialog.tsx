@@ -26,6 +26,7 @@ import {
   PAYMENT_METHODS,
   type PaymentMethod,
 } from "@/constants/material-data";
+import { addRevenueTransaction } from "@/lib/revenue-store";
 
 /**
  * UI-only sale entry modal with live total calculation.
@@ -76,6 +77,17 @@ export function NewSaleDialog({
 
   const submit = () => {
     setSubmitting(true);
+    if (material) {
+      addRevenueTransaction({
+        patientOrCustomerName: customerName.trim() || "Walk-in Customer",
+        category: "Material Sale",
+        amount: subtotal,
+        paidAmount: total,
+        dueAmount: 0,
+        method: method || "Cash",
+        remarks: remarks.trim() || `Material Sale: ${material.name} (Qty: ${qty})`,
+      });
+    }
     setTimeout(() => {
       setSubmitting(false);
       close();

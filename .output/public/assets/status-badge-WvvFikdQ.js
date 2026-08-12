@@ -1,1 +1,0 @@
-import{r as e}from"./useRouter-Ch6OGJRG.js";import{t}from"./badge-CJzIgwrr.js";var n=e(),r={success:`success`,warning:`warning`,danger:`danger`,info:`info`,neutral:`neutral`};function i({tone:e=`neutral`,label:i,dot:a=!0,className:o}){return(0,n.jsx)(t,{variant:r[e],dot:a,className:o,children:i})}export{i as t};

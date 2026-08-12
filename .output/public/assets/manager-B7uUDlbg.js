@@ -1,1 +1,0 @@
-import{r as e}from"./useRouter-Ch6OGJRG.js";import{t}from"./app-shell-DDalctfr.js";import{Er as n}from"./index-6jAz9KmB.js";var r=e();function i(){return(0,r.jsx)(t,{workspace:`manager`,children:(0,r.jsx)(n,{})})}export{i as component};

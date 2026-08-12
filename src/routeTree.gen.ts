@@ -19,6 +19,7 @@ import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthRegisterRouteImport } from './routes/auth.register'
 import { Route as ManagerIndexRouteImport } from './routes/manager.index'
 import { Route as ManagerDashboardRouteImport } from './routes/manager.dashboard'
+import { Route as ManagerRevenueRouteImport } from './routes/manager.revenue'
 import { Route as ManagerSalesRouteImport } from './routes/manager.sales'
 import { Route as SuperAdminIndexRouteImport } from './routes/super-admin.index'
 import { Route as SuperAdminDashboardRouteImport } from './routes/super-admin.dashboard'
@@ -95,6 +96,11 @@ const ManagerIndexRoute = ManagerIndexRouteImport.update({
 const ManagerDashboardRoute = ManagerDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => ManagerRoute,
+} as any)
+const ManagerRevenueRoute = ManagerRevenueRouteImport.update({
+  id: '/revenue',
+  path: '/revenue',
   getParentRoute: () => ManagerRoute,
 } as any)
 const ManagerSalesRoute = ManagerSalesRouteImport.update({
@@ -248,6 +254,7 @@ export interface FileRoutesByFullPath {
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/manager/dashboard': typeof ManagerDashboardRoute
+  '/manager/revenue': typeof ManagerRevenueRoute
   '/manager/sales': typeof ManagerSalesRoute
   '/super-admin/dashboard': typeof SuperAdminDashboardRoute
   '/auth/': typeof AuthIndexRoute
@@ -284,6 +291,7 @@ export interface FileRoutesByTo {
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/manager/dashboard': typeof ManagerDashboardRoute
+  '/manager/revenue': typeof ManagerRevenueRoute
   '/manager/sales': typeof ManagerSalesRoute
   '/super-admin/dashboard': typeof SuperAdminDashboardRoute
   '/auth': typeof AuthIndexRoute
@@ -324,6 +332,7 @@ export interface FileRoutesById {
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/manager/dashboard': typeof ManagerDashboardRoute
+  '/manager/revenue': typeof ManagerRevenueRoute
   '/manager/sales': typeof ManagerSalesRoute
   '/super-admin/dashboard': typeof SuperAdminDashboardRoute
   '/auth/': typeof AuthIndexRoute
@@ -365,6 +374,7 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/register'
     | '/manager/dashboard'
+    | '/manager/revenue'
     | '/manager/sales'
     | '/super-admin/dashboard'
     | '/auth/'
@@ -401,6 +411,7 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/register'
     | '/manager/dashboard'
+    | '/manager/revenue'
     | '/manager/sales'
     | '/super-admin/dashboard'
     | '/auth'
@@ -440,6 +451,7 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/register'
     | '/manager/dashboard'
+    | '/manager/revenue'
     | '/manager/sales'
     | '/super-admin/dashboard'
     | '/auth/'
@@ -548,6 +560,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/manager/dashboard'
       preLoaderRoute: typeof ManagerDashboardRouteImport
+      parentRoute: typeof ManagerRoute
+    }
+    '/manager/revenue': {
+      id: '/manager/revenue'
+      path: '/revenue'
+      fullPath: '/manager/revenue'
+      preLoaderRoute: typeof ManagerRevenueRouteImport
       parentRoute: typeof ManagerRoute
     }
     '/manager/sales': {
@@ -760,6 +779,7 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface ManagerRouteChildren {
   ManagerDashboardRoute: typeof ManagerDashboardRoute
+  ManagerRevenueRoute: typeof ManagerRevenueRoute
   ManagerSalesRoute: typeof ManagerSalesRoute
   ManagerIndexRoute: typeof ManagerIndexRoute
   ManagerAssessmentsAssessmentIdRoute: typeof ManagerAssessmentsAssessmentIdRoute
@@ -788,6 +808,7 @@ interface ManagerRouteChildren {
 
 const ManagerRouteChildren: ManagerRouteChildren = {
   ManagerDashboardRoute: ManagerDashboardRoute,
+  ManagerRevenueRoute: ManagerRevenueRoute,
   ManagerSalesRoute: ManagerSalesRoute,
   ManagerIndexRoute: ManagerIndexRoute,
   ManagerAssessmentsAssessmentIdRoute: ManagerAssessmentsAssessmentIdRoute,

@@ -29,6 +29,7 @@ import {
   PAYMENT_PACKAGES,
   findPackage,
 } from "@/constants/payment-data";
+import { addRevenueTransaction } from "@/lib/revenue-store";
 
 /**
  * UI-only payment collection flow.
@@ -87,6 +88,16 @@ export function CollectPaymentDialog({
 
   const submit = () => {
     setSubmitting(true);
+    const amountVal = Number(received || 0) || (selectedPackage ? selectedPackage.price : 3500);
+    addRevenueTransaction({
+      patientOrCustomerName: patient?.name || "Patient Fee Collection",
+      category: selectedPackage ? "Package Subscription" : "Therapy Session",
+      amount: amountVal,
+      paidAmount: amountVal,
+      dueAmount: 0,
+      method: (method as any) || "Cash",
+      remarks: selectedPackage ? `Package Payment Collection: ${selectedPackage.name}` : "Therapy Session Fee Collection",
+    });
     setTimeout(() => {
       setSubmitting(false);
       close();

@@ -17,7 +17,8 @@ import {
   DEFAULT_VISIBLE_COLUMNS,
   type PatientColumnKey,
 } from "@/components/patients/patient-columns";
-import { PATIENTS, PATIENT_KPIS } from "@/constants/patient-data";
+import { PatientKpiCards } from "@/components/patients/patient-kpi-cards";
+import { PATIENTS } from "@/constants/patient-data";
 
 const PAGE_SIZE = 8;
 
@@ -121,13 +122,8 @@ function PatientManagementPage() {
         }
       />
 
-      <section
-        aria-label="Patient summary"
-        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6"
-      >
-        {PATIENT_KPIS.map((kpi) => (
-          <KpiCard key={kpi.id} kpi={kpi} />
-        ))}
+      <section aria-label="Patient summary">
+        <PatientKpiCards />
       </section>
 
       <section

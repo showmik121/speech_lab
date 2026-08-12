@@ -31,6 +31,7 @@ import {
 } from "@/constants/patient-data";
 import { PAYMENT_PACKAGES, findPackage, type PaymentPackage } from "@/constants/payment-data";
 import { formatTaka } from "@/constants/dashboard-data";
+import { addRevenueTransaction } from "@/lib/revenue-store";
 
 const STEPS = [
   { id: 1, title: "Personal", description: "Identity and contact details" },
@@ -91,6 +92,16 @@ export function RegisterPatientDialog({
 
   const submit = () => {
     setSubmitting(true);
+    const amount = selectedPackage ? selectedPackage.price + selectedPackage.registrationFee : 15000;
+    addRevenueTransaction({
+      patientOrCustomerName: "Newly Registered Patient",
+      category: "Patient Enrollment",
+      amount,
+      paidAmount: amount,
+      dueAmount: 0,
+      method: "Mobile Banking",
+      remarks: selectedPackage ? `Enrolled in ${selectedPackage.name}` : "Patient Enrollment & Registration Fee",
+    });
     setTimeout(() => {
       setSubmitting(false);
       close();

@@ -1,4 +1,4 @@
-import { g as Link } from "../_libs/@tanstack/react-router+[...].mjs";
+import { v as Link } from "../_libs/@tanstack/react-router+[...].mjs";
 import { p as require_jsx_runtime } from "../_libs/@radix-ui/react-avatar+[...].mjs";
 import { t as Button } from "./button-Bq9dlKOW.mjs";
 import { t as Input } from "./input-BI0DiUgw.mjs";
