@@ -7,7 +7,6 @@ import {
   ClipboardList,
   Cog,
   Gauge,
-  LayoutGrid,
   LifeBuoy,
   PhoneCall,
   Receipt,
@@ -58,7 +57,6 @@ export const NAVIGATION: Record<WorkspaceKey, NavSection[]> = {
     {
       title: "Workspace",
       items: [
-        { label: "Overview", icon: LayoutGrid, to: "/super-admin" },
         { label: "Dashboard", icon: Gauge, to: "/super-admin/dashboard" },
       ],
     },
@@ -83,7 +81,6 @@ export const NAVIGATION: Record<WorkspaceKey, NavSection[]> = {
     {
       title: "Workspace",
       items: [
-        { label: "Overview", icon: LayoutGrid, to: "/manager" },
         { label: "Dashboard", icon: Gauge, to: "/manager/dashboard" },
       ],
     },
