@@ -1,1 +1,0 @@
-import{r as e}from"./useRouter-DEEFfhCB.js";import{t}from"./app-shell-Di_buUKy.js";import{Wn as n}from"./index-DewS1H6Q.js";var r=e();function i(){return(0,r.jsx)(t,{workspace:`manager`,"data-tsd-source":`/src/routes/manager.tsx:10:5`,children:(0,r.jsx)(n,{"data-tsd-source":`/src/routes/manager.tsx:11:7`})})}export{i as component};

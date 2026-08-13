@@ -1,1 +1,0 @@
-import{r as e}from"./useRouter-DEEFfhCB.js";import{Gn as t}from"./index-DewS1H6Q.js";var n=e(),r=()=>(0,n.jsx)(t,{to:`/auth/login`,replace:!0,"data-tsd-source":`/src/routes/auth.index.tsx:4:20`});export{r as component};

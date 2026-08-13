@@ -1,1 +1,0 @@
-import{r as e}from"./useRouter-DEEFfhCB.js";import{t}from"./badge-3rz-Ty5z.js";var n=e(),r={success:`success`,warning:`warning`,danger:`danger`,info:`info`,neutral:`neutral`};function i({tone:e=`neutral`,label:i,dot:a=!0,className:o}){return(0,n.jsx)(t,{variant:r[e],dot:a,className:o,"data-tsd-source":`/src/components/common/status-badge.tsx:29:5`,children:i})}export{i as t};
