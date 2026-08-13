@@ -1,6 +1,6 @@
 import { i as __toESM } from "../_runtime.mjs";
 import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
-import { Bt as CircleCheck, Cn as Activity, G as PhoneCall, It as ClipboardCheck, J as Package, Qt as CalendarPlus, S as Sparkles, T as ShoppingBag, a as Users, g as TrendingDown, gn as ArrowUpRight, h as TrendingUp, i as Wallet, in as BriefcaseMedical, l as UserPlus, ln as Bell, mn as BadgeDollarSign, on as Boxes, t as Zap, tn as CalendarCheck, vn as ArrowRight } from "../_libs/lucide-react.mjs";
+import { C as Sparkles, E as ShoppingBag, Ht as CircleCheck, K as PhoneCall, Rt as ClipboardCheck, Tn as Activity, Y as Package, a as Users, bn as ArrowRight, cn as Boxes, dn as Bell, en as CalendarPlus, g as TrendingDown, gn as BadgeDollarSign, h as TrendingUp, i as Wallet, l as UserPlus, on as BriefcaseMedical, rn as CalendarCheck, t as Zap, vn as ArrowUpRight } from "../_libs/lucide-react.mjs";
 import { p as formatTaka } from "./dashboard-data-C7eijLwG.mjs";
 import { v as Link } from "../_libs/@tanstack/react-router+[...].mjs";
 import { p as require_jsx_runtime } from "../_libs/@radix-ui/react-avatar+[...].mjs";

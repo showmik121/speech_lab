@@ -46,7 +46,7 @@ function LoginPage() {
       return;
     }
 
-    navigate({ to: "/manager" });
+    navigate({ to: "/manager/dashboard" });
   }
 
   return (

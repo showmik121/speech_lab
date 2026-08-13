@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   BadgeDollarSign,
+  CalendarDays,
   CheckCircle2,
   ChevronRight,
   ClipboardPlus,
@@ -9,6 +10,7 @@ import {
   Hash,
   Heart,
   Loader2,
+  MapPin,
   Package,
   Phone,
   ShieldCheck,
@@ -45,6 +47,7 @@ import {
 } from "@/constants/patient-data";
 import { PAYMENT_PACKAGES } from "@/constants/payment-data";
 import { THERAPY_TYPES } from "@/constants/therapy-types";
+import { getStoredDailySessions, useDailySessionStore } from "@/lib/daily-session-store";
 import { formatTaka } from "@/constants/dashboard-data";
 import { addRevenueTransaction } from "@/lib/revenue-store";
 import { addPatient } from "@/lib/patient-store";
@@ -143,7 +146,7 @@ export function RegisterPatientDialog({
   const [medicalHistory, setMedicalHistory] = useState("");
 
   // Programme & Payment
-  const [serviceType, setServiceType] = useState<"package" | "therapy">("package");
+  const [serviceType, setServiceType] = useState<"package" | "therapy" | "daily-session">("package");
   const [selectedServiceId, setSelectedServiceId] = useState<string>("");
   const [paymentType, setPaymentType] = useState<"Full Payment" | "Monthly" | "Installment">("Full Payment");
   const [firstPayment, setFirstPayment] = useState("");
@@ -169,19 +172,24 @@ export function RegisterPatientDialog({
     if (serviceType === "package") {
       return PAYMENT_PACKAGES.find((p) => p.id === selectedServiceId) ?? null;
     }
+    if (serviceType === "daily-session") {
+      return getStoredDailySessions().find((d) => d.id === selectedServiceId) ?? null;
+    }
     return THERAPY_TYPES.find((t) => t.id === selectedServiceId) ?? null;
   }, [serviceType, selectedServiceId]);
 
   const basePrice = useMemo(() => {
     if (!selectedService) return 0;
-    if (serviceType === "package") return (selectedService as typeof PAYMENT_PACKAGES[0]).price;
+    if (serviceType === "package" || serviceType === "daily-session") {
+      return (selectedService as any).price;
+    }
     const thr = selectedService as typeof THERAPY_TYPES[0];
     return thr.fees.length > 0 ? thr.fees[0].price : 0;
   }, [selectedService, serviceType]);
 
   const totalAmount = parseFloat(customAmount) || basePrice;
 
-  const isTherapy = serviceType === "therapy";
+  const isTherapy = serviceType === "therapy" || serviceType === "daily-session";
   const MONTHLY_PLAN_IDS = ["monthly-individual", "monthly-group"];
   const isMonthlyPlan = serviceType === "package" && MONTHLY_PLAN_IDS.includes(selectedServiceId);
 
@@ -884,7 +892,7 @@ function StepProgrammePayment({
   paymentMethod, onPaymentMethodChange,
   errors,
 }: {
-  serviceType: "package" | "therapy"; onServiceTypeChange: (v: "package" | "therapy") => void;
+  serviceType: "package" | "therapy" | "daily-session"; onServiceTypeChange: (v: "package" | "therapy" | "daily-session") => void;
   selectedServiceId: string; onSelectedServiceIdChange: (v: string) => void;
   selectedService: any;
   basePrice: number;
@@ -899,33 +907,41 @@ function StepProgrammePayment({
 }) {
   const activePackages = PAYMENT_PACKAGES.filter((p) => p.status === "Active");
   const activeTherapies = THERAPY_TYPES.filter((t) => t.status === "Active");
+  const activeDailySessions = getStoredDailySessions().filter((d) => d.status === "Active");
+
+  const serviceList =
+    serviceType === "package"
+      ? activePackages
+      : serviceType === "daily-session"
+      ? activeDailySessions
+      : activeTherapies;
 
   return (
     <div className="space-y-6">
       {/* Service Type Toggle */}
       <div>
         <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Enroll In</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-2.5">
           <button
             type="button"
             onClick={() => onServiceTypeChange("package")}
             className={cn(
-              "flex items-center gap-3 rounded-xl border-2 p-4 text-left transition-all cursor-pointer",
+              "flex items-center gap-2.5 rounded-xl border-2 p-3 text-left transition-all cursor-pointer",
               serviceType === "package"
                 ? "border-emerald-500 bg-emerald-500/10"
                 : "border-border bg-card hover:border-muted-foreground/30 hover:bg-muted/30"
             )}
           >
-            <span className={cn("grid h-10 w-10 place-items-center rounded-xl",
+            <span className={cn("grid h-9 w-9 place-items-center rounded-xl shrink-0",
               serviceType === "package" ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"
             )}>
-              <Package className="h-5 w-5" />
+              <Package className="h-4.5 w-4.5" />
             </span>
-            <div>
-              <p className={cn("font-bold text-[13px]", serviceType === "package" ? "text-emerald-600 dark:text-emerald-400" : "text-foreground")}>
+            <div className="min-w-0">
+              <p className={cn("font-bold text-[12.5px] truncate", serviceType === "package" ? "text-emerald-600 dark:text-emerald-400" : "text-foreground")}>
                 Package
               </p>
-              <p className="text-[11.5px] text-muted-foreground">{activePackages.length} active plans</p>
+              <p className="text-[11px] text-muted-foreground truncate">{activePackages.length} plans</p>
             </div>
           </button>
 
@@ -933,22 +949,45 @@ function StepProgrammePayment({
             type="button"
             onClick={() => onServiceTypeChange("therapy")}
             className={cn(
-              "flex items-center gap-3 rounded-xl border-2 p-4 text-left transition-all cursor-pointer",
+              "flex items-center gap-2.5 rounded-xl border-2 p-3 text-left transition-all cursor-pointer",
               serviceType === "therapy"
                 ? "border-blue-500 bg-blue-500/10"
                 : "border-border bg-card hover:border-muted-foreground/30 hover:bg-muted/30"
             )}
           >
-            <span className={cn("grid h-10 w-10 place-items-center rounded-xl",
+            <span className={cn("grid h-9 w-9 place-items-center rounded-xl shrink-0",
               serviceType === "therapy" ? "bg-blue-500 text-white" : "bg-muted text-muted-foreground"
             )}>
-              <Stethoscope className="h-5 w-5" />
+              <Stethoscope className="h-4.5 w-4.5" />
             </span>
-            <div>
-              <p className={cn("font-bold text-[13px]", serviceType === "therapy" ? "text-blue-600 dark:text-blue-400" : "text-foreground")}>
+            <div className="min-w-0">
+              <p className={cn("font-bold text-[12.5px] truncate", serviceType === "therapy" ? "text-blue-600 dark:text-blue-400" : "text-foreground")}>
                 Therapy
               </p>
-              <p className="text-[11.5px] text-muted-foreground">{activeTherapies.length} therapy types</p>
+              <p className="text-[11px] text-muted-foreground truncate">{activeTherapies.length} types</p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onServiceTypeChange("daily-session")}
+            className={cn(
+              "flex items-center gap-2.5 rounded-xl border-2 p-3 text-left transition-all cursor-pointer",
+              serviceType === "daily-session"
+                ? "border-purple-500 bg-purple-500/10"
+                : "border-border bg-card hover:border-muted-foreground/30 hover:bg-muted/30"
+            )}
+          >
+            <span className={cn("grid h-9 w-9 place-items-center rounded-xl shrink-0",
+              serviceType === "daily-session" ? "bg-purple-500 text-white" : "bg-muted text-muted-foreground"
+            )}>
+              <CalendarDays className="h-4.5 w-4.5" />
+            </span>
+            <div className="min-w-0">
+              <p className={cn("font-bold text-[12.5px] truncate", serviceType === "daily-session" ? "text-purple-600 dark:text-purple-400" : "text-foreground")}>
+                Daily Session
+              </p>
+              <p className="text-[11px] text-muted-foreground truncate">{activeDailySessions.length} services</p>
             </div>
           </button>
         </div>
@@ -958,20 +997,24 @@ function StepProgrammePayment({
       <div>
         <div className="flex items-center justify-between mb-3">
           <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Select {serviceType === "package" ? "Package" : "Therapy"} <span className="text-rose-500">*</span>
+            Select {serviceType === "package" ? "Package" : serviceType === "daily-session" ? "Daily Session" : "Therapy"} <span className="text-rose-500">*</span>
           </p>
           {errors.selectedServiceId && (
             <p className="text-xs font-semibold text-rose-500">{errors.selectedServiceId}</p>
           )}
         </div>
         <div className={cn("grid gap-2.5 sm:grid-cols-2 rounded-xl p-1", errors.selectedServiceId && "ring-2 ring-rose-500/40 bg-rose-500/5")}>
-          {(serviceType === "package" ? activePackages : activeTherapies).map((item) => {
-            const price = serviceType === "package"
-              ? (item as typeof PAYMENT_PACKAGES[0]).price
-              : ((item as typeof THERAPY_TYPES[0]).fees[0]?.price ?? 0);
-            const desc = serviceType === "package"
-              ? (item as typeof PAYMENT_PACKAGES[0]).durationLabel
-              : (item as typeof THERAPY_TYPES[0]).category;
+          {serviceList.map((item: any) => {
+            const price =
+              serviceType === "package" || serviceType === "daily-session"
+                ? item.price
+                : (item.fees?.[0]?.price ?? 0);
+            const desc =
+              serviceType === "package"
+                ? item.durationLabel
+                : serviceType === "daily-session"
+                ? item.durationLabel
+                : item.category;
             const isSelected = selectedServiceId === item.id;
             return (
               <button
@@ -983,6 +1026,8 @@ function StepProgrammePayment({
                   isSelected
                     ? serviceType === "package"
                       ? "border-emerald-500 bg-emerald-500/8 shadow-xs"
+                      : serviceType === "daily-session"
+                      ? "border-purple-500 bg-purple-500/8 shadow-xs"
                       : "border-blue-500 bg-blue-500/8 shadow-xs"
                     : "border-border bg-card hover:border-muted-foreground/30 hover:bg-muted/20"
                 )}
@@ -990,17 +1035,25 @@ function StepProgrammePayment({
                 <span className={cn(
                   "mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-bold",
                   isSelected
-                    ? serviceType === "package" ? "bg-emerald-500 text-white" : "bg-blue-500 text-white"
+                    ? serviceType === "package"
+                      ? "bg-emerald-500 text-white"
+                      : serviceType === "daily-session"
+                      ? "bg-purple-500 text-white"
+                      : "bg-blue-500 text-white"
                     : "bg-muted text-muted-foreground"
                 )}>
                   {isSelected ? <CheckCircle2 className="h-4 w-4" /> : <Activity className="h-3.5 w-3.5" />}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-semibold text-foreground truncate">{item.name}</p>
-                  <p className="text-[11.5px] text-muted-foreground">{desc}</p>
+                  <p className="text-[11.5px] text-muted-foreground truncate">{desc}</p>
                   <p className={cn("mt-1 text-[13px] font-bold tabular-nums",
                     isSelected
-                      ? serviceType === "package" ? "text-emerald-600 dark:text-emerald-400" : "text-blue-600 dark:text-blue-400"
+                      ? serviceType === "package"
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : serviceType === "daily-session"
+                        ? "text-purple-600 dark:text-purple-400"
+                        : "text-blue-600 dark:text-blue-400"
                       : "text-foreground"
                   )}>
                     {formatTaka(price)}

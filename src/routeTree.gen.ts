@@ -26,6 +26,7 @@ import { Route as SuperAdminDashboardRouteImport } from './routes/super-admin.da
 import { Route as ManagerAssessmentsIndexRouteImport } from './routes/manager.assessments.index'
 import { Route as ManagerAssessmentsAssessmentIdRouteImport } from './routes/manager.assessments.$assessmentId'
 import { Route as ManagerAssessmentsNewRouteImport } from './routes/manager.assessments.new'
+import { Route as ManagerDailySessionIndexRouteImport } from './routes/manager.daily-session.index'
 import { Route as ManagerExpenseIndexRouteImport } from './routes/manager.expense.index'
 import { Route as ManagerFollowUpIndexRouteImport } from './routes/manager.follow-up.index'
 import { Route as ManagerFollowUpFollowUpIdRouteImport } from './routes/manager.follow-up.$followUpId'
@@ -134,6 +135,12 @@ const ManagerAssessmentsNewRoute = ManagerAssessmentsNewRouteImport.update({
   path: '/assessments/new',
   getParentRoute: () => ManagerRoute,
 } as any)
+const ManagerDailySessionIndexRoute =
+  ManagerDailySessionIndexRouteImport.update({
+    id: '/daily-session/',
+    path: '/daily-session/',
+    getParentRoute: () => ManagerRoute,
+  } as any)
 const ManagerExpenseIndexRoute = ManagerExpenseIndexRouteImport.update({
   id: '/expense/',
   path: '/expense/',
@@ -275,6 +282,7 @@ export interface FileRoutesByFullPath {
   '/manager/therapy/new': typeof ManagerTherapyNewRoute
   '/super-admin/branches/$branchId': typeof SuperAdminBranchesBranchIdRoute
   '/manager/assessments/': typeof ManagerAssessmentsIndexRoute
+  '/manager/daily-session/': typeof ManagerDailySessionIndexRoute
   '/manager/expense/': typeof ManagerExpenseIndexRoute
   '/manager/follow-up/': typeof ManagerFollowUpIndexRoute
   '/manager/materials/': typeof ManagerMaterialsIndexRoute
@@ -312,6 +320,7 @@ export interface FileRoutesByTo {
   '/manager/therapy/new': typeof ManagerTherapyNewRoute
   '/super-admin/branches/$branchId': typeof SuperAdminBranchesBranchIdRoute
   '/manager/assessments': typeof ManagerAssessmentsIndexRoute
+  '/manager/daily-session': typeof ManagerDailySessionIndexRoute
   '/manager/expense': typeof ManagerExpenseIndexRoute
   '/manager/follow-up': typeof ManagerFollowUpIndexRoute
   '/manager/materials': typeof ManagerMaterialsIndexRoute
@@ -353,6 +362,7 @@ export interface FileRoutesById {
   '/manager/therapy/new': typeof ManagerTherapyNewRoute
   '/super-admin/branches/$branchId': typeof SuperAdminBranchesBranchIdRoute
   '/manager/assessments/': typeof ManagerAssessmentsIndexRoute
+  '/manager/daily-session/': typeof ManagerDailySessionIndexRoute
   '/manager/expense/': typeof ManagerExpenseIndexRoute
   '/manager/follow-up/': typeof ManagerFollowUpIndexRoute
   '/manager/materials/': typeof ManagerMaterialsIndexRoute
@@ -395,6 +405,7 @@ export interface FileRouteTypes {
     | '/manager/therapy/new'
     | '/super-admin/branches/$branchId'
     | '/manager/assessments/'
+    | '/manager/daily-session/'
     | '/manager/expense/'
     | '/manager/follow-up/'
     | '/manager/materials/'
@@ -432,6 +443,7 @@ export interface FileRouteTypes {
     | '/manager/therapy/new'
     | '/super-admin/branches/$branchId'
     | '/manager/assessments'
+    | '/manager/daily-session'
     | '/manager/expense'
     | '/manager/follow-up'
     | '/manager/materials'
@@ -472,6 +484,7 @@ export interface FileRouteTypes {
     | '/manager/therapy/new'
     | '/super-admin/branches/$branchId'
     | '/manager/assessments/'
+    | '/manager/daily-session/'
     | '/manager/expense/'
     | '/manager/follow-up/'
     | '/manager/materials/'
@@ -609,6 +622,13 @@ declare module '@tanstack/react-router' {
       path: '/assessments/new'
       fullPath: '/manager/assessments/new'
       preLoaderRoute: typeof ManagerAssessmentsNewRouteImport
+      parentRoute: typeof ManagerRoute
+    }
+    '/manager/daily-session/': {
+      id: '/manager/daily-session/'
+      path: '/daily-session'
+      fullPath: '/manager/daily-session/'
+      preLoaderRoute: typeof ManagerDailySessionIndexRouteImport
       parentRoute: typeof ManagerRoute
     }
     '/manager/expense/': {
@@ -796,6 +816,7 @@ interface ManagerRouteChildren {
   ManagerTherapySessionIdRoute: typeof ManagerTherapySessionIdRoute
   ManagerTherapyNewRoute: typeof ManagerTherapyNewRoute
   ManagerAssessmentsIndexRoute: typeof ManagerAssessmentsIndexRoute
+  ManagerDailySessionIndexRoute: typeof ManagerDailySessionIndexRoute
   ManagerExpenseIndexRoute: typeof ManagerExpenseIndexRoute
   ManagerFollowUpIndexRoute: typeof ManagerFollowUpIndexRoute
   ManagerMaterialsIndexRoute: typeof ManagerMaterialsIndexRoute
@@ -825,6 +846,7 @@ const ManagerRouteChildren: ManagerRouteChildren = {
   ManagerTherapySessionIdRoute: ManagerTherapySessionIdRoute,
   ManagerTherapyNewRoute: ManagerTherapyNewRoute,
   ManagerAssessmentsIndexRoute: ManagerAssessmentsIndexRoute,
+  ManagerDailySessionIndexRoute: ManagerDailySessionIndexRoute,
   ManagerExpenseIndexRoute: ManagerExpenseIndexRoute,
   ManagerFollowUpIndexRoute: ManagerFollowUpIndexRoute,
   ManagerMaterialsIndexRoute: ManagerMaterialsIndexRoute,
