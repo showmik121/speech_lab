@@ -1,0 +1,1 @@
+import{r as e}from"./useRouter-BfOmrYv_.js";import{t}from"./app-shell-BTaL_BKN.js";import{Wn as n}from"./index-iViHxmA2.js";var r=e();function i(){return(0,r.jsx)(t,{workspace:`super-admin`,children:(0,r.jsx)(n,{})})}export{i as component};

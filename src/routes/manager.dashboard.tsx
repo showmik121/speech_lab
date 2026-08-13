@@ -42,6 +42,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { formatTaka } from "@/constants/dashboard-data";
 import { getActiveBranch } from "@/lib/manager-session";
 import { useRevenueStore } from "@/lib/revenue-store";
+import { usePatientStore } from "@/lib/patient-store";
 import { PATIENTS } from "@/constants/patient-data";
 import {
   REVENUE_TREND,
@@ -83,11 +84,7 @@ function ManagerDashboard() {
   const now = useLiveClock();
   const { dailyRevenue, dailyCount, monthlyRevenue, transactions, enrollmentRevenue, salesRevenue, sessionRevenue } =
     useRevenueStore();
-
-  const activePatients = PATIENTS.filter((p) =>
-    ["Active", "Therapy Running", "Follow-up Required"].includes(p.status),
-  ).length;
-  const assessmentPending = PATIENTS.filter((p) => p.status === "Assessment Pending").length;
+  const { activePatients, assessmentPending } = usePatientStore();
 
   const trendData = REVENUE_TREND["week"];
   const monthlyPercent = Math.min(100, Math.round((monthlyRevenue / 250000) * 100));

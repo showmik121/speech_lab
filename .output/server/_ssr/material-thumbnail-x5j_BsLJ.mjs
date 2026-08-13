@@ -1,4 +1,4 @@
-import { F as ScanFace, cn as BookOpen, dt as Library, h as Type, ln as Blocks, pt as Layers, sn as Boxes, t as Zap, w as Sparkles } from "../_libs/lucide-react.mjs";
+import { C as Sparkles, P as ScanFace, cn as Boxes, ft as Layers, ln as BookOpen, m as Type, t as Zap, un as Blocks, ut as Library } from "../_libs/lucide-react.mjs";
 import { p as require_jsx_runtime } from "../_libs/@radix-ui/react-avatar+[...].mjs";
 import { t as cn } from "./utils-C_uf36nf.mjs";
 //#region node_modules/.nitro/vite/services/ssr/assets/material-thumbnail-x5j_BsLJ.js

@@ -10,16 +10,10 @@ import {
   Users,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { PATIENTS } from "@/constants/patient-data";
+import { usePatientStore } from "@/lib/patient-store";
 
 export function PatientKpiCards() {
-  const totalPatients = PATIENTS.length;
-  const activePatients = PATIENTS.filter((p) =>
-    ["Active", "Therapy Running", "Follow-up Required"].includes(p.status),
-  ).length;
-  const newThisMonth = PATIENTS.filter((p) => p.registeredAt >= "2026-07-01").length;
-  const assessmentPending = PATIENTS.filter((p) => p.status === "Assessment Pending").length;
-  const therapyOngoing = PATIENTS.filter((p) => p.status === "Therapy Running").length;
+  const { totalPatients, activePatients, newThisMonth, assessmentPending, therapyOngoing } = usePatientStore();
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">

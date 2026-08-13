@@ -1,4 +1,4 @@
-import { $t as CalendarPlus, L as Repeat2, Vt as CircleCheck, _ as TrendingUp, g as TriangleAlert, q as PhoneCall, tn as CalendarClock, wt as Flame } from "../_libs/lucide-react.mjs";
+import { Ht as CircleCheck, I as Repeat2, K as PhoneCall, Tt as Flame, en as CalendarPlus, g as TrendingUp, h as TriangleAlert, nn as CalendarClock } from "../_libs/lucide-react.mjs";
 //#region node_modules/.nitro/vite/services/ssr/assets/follow-up-data-ocWJfEAb.js
 /**
 * Static demo data for the Follow-up CRM & Patient Retention module.
