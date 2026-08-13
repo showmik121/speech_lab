@@ -1,4 +1,4 @@
-import { pt as Inbox } from "../_libs/lucide-react.mjs";
+import { ht as Inbox } from "../_libs/lucide-react.mjs";
 import { p as require_jsx_runtime } from "../_libs/@radix-ui/react-avatar+[...].mjs";
 import { t as cn } from "./utils-C_uf36nf.mjs";
 //#region node_modules/.nitro/vite/services/ssr/assets/empty-state-Cu0SfqSK.js

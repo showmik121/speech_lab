@@ -1,4 +1,4 @@
-import { ut as LayoutGrid } from "../_libs/lucide-react.mjs";
+import { ft as LayoutGrid } from "../_libs/lucide-react.mjs";
 import { p as require_jsx_runtime } from "../_libs/@radix-ui/react-avatar+[...].mjs";
 import { t as Button } from "./button-Bq9dlKOW.mjs";
 import { t as PageHeader } from "./page-header-B70tvyWu.mjs";

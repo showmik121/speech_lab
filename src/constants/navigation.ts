@@ -88,11 +88,8 @@ export const NAVIGATION: Record<WorkspaceKey, NavSection[]> = {
         { label: "Revenue", icon: TrendingUp, to: "/manager/revenue" },
         { label: "Expense", icon: TrendingDown, to: "/manager/expense" },
         { label: "Packages", icon: Receipt, to: "/manager/packages" },
-<<<<<<< HEAD
         { label: "Daily Session", icon: CalendarDays, to: "/manager/daily-session" },
-=======
         { label: "Online Session", icon: Video, to: "/manager/online-session" },
->>>>>>> df550e1e2d680f6ca312a2733b1ba6c66fcc67bc
         { label: "Follow-up", icon: PhoneCall, to: "/manager/follow-up" },
         { label: "Materials", icon: Boxes, to: "/manager/materials" },
 
