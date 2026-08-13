@@ -41,10 +41,12 @@ export function PackageCard({
   item,
   onEdit,
   onDiscount,
+  onCollect,
 }: {
   item: PaymentPackage;
   onEdit?: (item: PaymentPackage) => void;
   onDiscount?: (item: PaymentPackage) => void;
+  onCollect?: (item: PaymentPackage) => void;
 }) {
   const Icon = TYPE_ICON[item.type];
   const netPrice = Math.round(item.price * (1 - item.discount / 100));

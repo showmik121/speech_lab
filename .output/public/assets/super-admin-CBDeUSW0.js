@@ -1,1 +1,0 @@
-import{r as e}from"./useRouter-BfOmrYv_.js";import{t}from"./app-shell-DRCt-4x5.js";import{Wn as n}from"./index-62FlJViS.js";var r=e();function i(){return(0,r.jsx)(t,{workspace:`super-admin`,children:(0,r.jsx)(n,{})})}export{i as component};

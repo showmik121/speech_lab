@@ -207,12 +207,12 @@ export function LiveTransactionTable({
 
 function CategoryBadge({ category }: { category: RevenueCategory }) {
   if (category === "Patient Enrollment" || category === "Package Subscription") {
-    return <StatusBadge tone="success" label={category} icon={UserPlus} />;
+    return <StatusBadge tone="success" label={category} />;
   }
   if (category === "Material Sale") {
-    return <StatusBadge tone="warning" label={category} icon={ShoppingBag} />;
+    return <StatusBadge tone="warning" label={category} />;
   }
-  return <StatusBadge tone="info" label={category} icon={Banknote} />;
+  return <StatusBadge tone="info" label={category} />;
 }
 
 function FilterTab({

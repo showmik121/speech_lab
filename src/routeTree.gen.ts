@@ -19,6 +19,7 @@ import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthRegisterRouteImport } from './routes/auth.register'
 import { Route as ManagerIndexRouteImport } from './routes/manager.index'
 import { Route as ManagerDashboardRouteImport } from './routes/manager.dashboard'
+import { Route as ManagerOnlineSessionRouteImport } from './routes/manager.online-session'
 import { Route as ManagerRevenueRouteImport } from './routes/manager.revenue'
 import { Route as ManagerSalesRouteImport } from './routes/manager.sales'
 import { Route as SuperAdminIndexRouteImport } from './routes/super-admin.index'
@@ -96,6 +97,11 @@ const ManagerIndexRoute = ManagerIndexRouteImport.update({
 const ManagerDashboardRoute = ManagerDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => ManagerRoute,
+} as any)
+const ManagerOnlineSessionRoute = ManagerOnlineSessionRouteImport.update({
+  id: '/online-session',
+  path: '/online-session',
   getParentRoute: () => ManagerRoute,
 } as any)
 const ManagerRevenueRoute = ManagerRevenueRouteImport.update({
@@ -254,6 +260,7 @@ export interface FileRoutesByFullPath {
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/manager/dashboard': typeof ManagerDashboardRoute
+  '/manager/online-session': typeof ManagerOnlineSessionRoute
   '/manager/revenue': typeof ManagerRevenueRoute
   '/manager/sales': typeof ManagerSalesRoute
   '/super-admin/dashboard': typeof SuperAdminDashboardRoute
@@ -291,6 +298,7 @@ export interface FileRoutesByTo {
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/manager/dashboard': typeof ManagerDashboardRoute
+  '/manager/online-session': typeof ManagerOnlineSessionRoute
   '/manager/revenue': typeof ManagerRevenueRoute
   '/manager/sales': typeof ManagerSalesRoute
   '/super-admin/dashboard': typeof SuperAdminDashboardRoute
@@ -332,6 +340,7 @@ export interface FileRoutesById {
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/manager/dashboard': typeof ManagerDashboardRoute
+  '/manager/online-session': typeof ManagerOnlineSessionRoute
   '/manager/revenue': typeof ManagerRevenueRoute
   '/manager/sales': typeof ManagerSalesRoute
   '/super-admin/dashboard': typeof SuperAdminDashboardRoute
@@ -374,6 +383,7 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/register'
     | '/manager/dashboard'
+    | '/manager/online-session'
     | '/manager/revenue'
     | '/manager/sales'
     | '/super-admin/dashboard'
@@ -411,6 +421,7 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/register'
     | '/manager/dashboard'
+    | '/manager/online-session'
     | '/manager/revenue'
     | '/manager/sales'
     | '/super-admin/dashboard'
@@ -451,6 +462,7 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/register'
     | '/manager/dashboard'
+    | '/manager/online-session'
     | '/manager/revenue'
     | '/manager/sales'
     | '/super-admin/dashboard'
@@ -560,6 +572,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/manager/dashboard'
       preLoaderRoute: typeof ManagerDashboardRouteImport
+      parentRoute: typeof ManagerRoute
+    }
+    '/manager/online-session': {
+      id: '/manager/online-session'
+      path: '/online-session'
+      fullPath: '/manager/online-session'
+      preLoaderRoute: typeof ManagerOnlineSessionRouteImport
       parentRoute: typeof ManagerRoute
     }
     '/manager/revenue': {
@@ -779,6 +798,7 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface ManagerRouteChildren {
   ManagerDashboardRoute: typeof ManagerDashboardRoute
+  ManagerOnlineSessionRoute: typeof ManagerOnlineSessionRoute
   ManagerRevenueRoute: typeof ManagerRevenueRoute
   ManagerSalesRoute: typeof ManagerSalesRoute
   ManagerIndexRoute: typeof ManagerIndexRoute
@@ -808,6 +828,7 @@ interface ManagerRouteChildren {
 
 const ManagerRouteChildren: ManagerRouteChildren = {
   ManagerDashboardRoute: ManagerDashboardRoute,
+  ManagerOnlineSessionRoute: ManagerOnlineSessionRoute,
   ManagerRevenueRoute: ManagerRevenueRoute,
   ManagerSalesRoute: ManagerSalesRoute,
   ManagerIndexRoute: ManagerIndexRoute,

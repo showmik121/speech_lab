@@ -15,6 +15,7 @@ import {
   TrendingUp,
   Users,
   UsersRound,
+  Video,
 } from "lucide-react";
 
 export type NavItem = {
@@ -87,6 +88,7 @@ export const NAVIGATION: Record<WorkspaceKey, NavSection[]> = {
         { label: "Revenue", icon: TrendingUp, to: "/manager/revenue" },
         { label: "Expense", icon: TrendingDown, to: "/manager/expense" },
         { label: "Packages", icon: Receipt, to: "/manager/packages" },
+        { label: "Online Session", icon: Video, to: "/manager/online-session" },
         { label: "Follow-up", icon: PhoneCall, to: "/manager/follow-up" },
         { label: "Materials", icon: Boxes, to: "/manager/materials" },
 
