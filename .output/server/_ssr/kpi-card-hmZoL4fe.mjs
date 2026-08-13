@@ -1,4 +1,4 @@
-import { Tn as ArrowDownRight, bn as ArrowUpRight, tt as Minus } from "../_libs/lucide-react.mjs";
+import { En as ArrowDownRight, nt as Minus, xn as ArrowUpRight } from "../_libs/lucide-react.mjs";
 import { p as require_jsx_runtime } from "../_libs/@radix-ui/react-avatar+[...].mjs";
 import { t as cn } from "./utils-C_uf36nf.mjs";
 import { t as Card } from "./card-e-zh1EWu.mjs";
