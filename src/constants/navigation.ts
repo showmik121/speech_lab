@@ -47,7 +47,7 @@ export const WORKSPACES: Record<
   manager: {
     label: "Branch Manager",
     description: "Single branch operations",
-    basePath: "/manager",
+    basePath: "/manager/dashboard",
     icon: Building2,
   },
 };
@@ -88,6 +88,7 @@ export const NAVIGATION: Record<WorkspaceKey, NavSection[]> = {
         { label: "Revenue", icon: TrendingUp, to: "/manager/revenue" },
         { label: "Expense", icon: TrendingDown, to: "/manager/expense" },
         { label: "Packages", icon: Receipt, to: "/manager/packages" },
+        { label: "Daily Session", icon: CalendarDays, to: "/manager/daily-session" },
         { label: "Online Session", icon: Video, to: "/manager/online-session" },
         { label: "Follow-up", icon: PhoneCall, to: "/manager/follow-up" },
         { label: "Materials", icon: Boxes, to: "/manager/materials" },

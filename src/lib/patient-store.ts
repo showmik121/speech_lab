@@ -26,6 +26,7 @@ export function savePatients(patients: Patient[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(patients));
     window.dispatchEvent(new CustomEvent(EVENT_NAME));
+    window.dispatchEvent(new Event("storage"));
   } catch (err) {
     console.error("Error saving patients to localStorage", err);
   }

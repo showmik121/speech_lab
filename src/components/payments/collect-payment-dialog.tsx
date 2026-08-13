@@ -29,6 +29,7 @@ import {
   PAYMENT_PACKAGES,
   findPackage,
 } from "@/constants/payment-data";
+import { getStoredDailySessions } from "@/lib/daily-session-store";
 import { addRevenueTransaction } from "@/lib/revenue-store";
 
 /**
@@ -55,7 +56,7 @@ export function CollectPaymentDialog({
   const [submitting, setSubmitting] = useState(false);
 
   const patient = PATIENTS.find((item) => item.id === patientId);
-  const selectedPackage = findPackage(packageId);
+  const selectedPackage = (findPackage(packageId) || getStoredDailySessions().find((d) => d.id === packageId)) as any;
 
   const results = useMemo(() => {
     const value = query.trim().toLowerCase();
@@ -98,10 +99,8 @@ export function CollectPaymentDialog({
       method: (method as any) || "Cash",
       remarks: selectedPackage ? `Package Payment Collection: ${selectedPackage.name}` : "Therapy Session Fee Collection",
     });
-    setTimeout(() => {
-      setSubmitting(false);
-      close();
-    }, 900);
+    setSubmitting(false);
+    close();
   };
 
   const needsReference = method !== "Cash";
@@ -215,7 +214,12 @@ export function CollectPaymentDialog({
                   <SelectContent>
                     {PAYMENT_PACKAGES.map((item) => (
                       <SelectItem key={item.id} value={item.id}>
-                        {item.name} — {formatTaka(item.price)}
+                        [Package] {item.name} — {formatTaka(item.price)}
+                      </SelectItem>
+                    ))}
+                    {getStoredDailySessions().map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        [Daily Session] {item.name} — {formatTaka(item.price)}
                       </SelectItem>
                     ))}
                   </SelectContent>
