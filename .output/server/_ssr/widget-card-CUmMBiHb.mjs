@@ -1,4 +1,4 @@
-import { kt as Ellipsis } from "../_libs/lucide-react.mjs";
+import { Dt as Ellipsis } from "../_libs/lucide-react.mjs";
 import { p as require_jsx_runtime } from "../_libs/@radix-ui/react-avatar+[...].mjs";
 import { t as cn } from "./utils-C_uf36nf.mjs";
 import { t as Button } from "./button-Bq9dlKOW.mjs";

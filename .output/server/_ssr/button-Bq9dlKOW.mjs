@@ -1,6 +1,6 @@
 import { i as __toESM } from "../_runtime.mjs";
 import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
-import { ct as LoaderCircle } from "../_libs/lucide-react.mjs";
+import { ot as LoaderCircle } from "../_libs/lucide-react.mjs";
 import { l as Slot, p as require_jsx_runtime } from "../_libs/@radix-ui/react-avatar+[...].mjs";
 import { t as cva } from "../_libs/class-variance-authority+clsx.mjs";
 import { t as cn } from "./utils-C_uf36nf.mjs";

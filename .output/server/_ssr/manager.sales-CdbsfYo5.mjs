@@ -1,6 +1,6 @@
 import { i as __toESM } from "../_runtime.mjs";
 import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
-import { T as ShoppingCart, cn as Boxes } from "../_libs/lucide-react.mjs";
+import { on as Boxes, w as ShoppingCart } from "../_libs/lucide-react.mjs";
 import { p as formatTaka } from "./dashboard-data-C7eijLwG.mjs";
 import { _ as SALES, c as MATERIAL_KPIS, r as MATERIALS } from "./material-data-BTa-_ze7.mjs";
 import { v as Link } from "../_libs/@tanstack/react-router+[...].mjs";
