@@ -99,10 +99,8 @@ export function CollectPaymentDialog({
       method: (method as any) || "Cash",
       remarks: selectedPackage ? `Package Payment Collection: ${selectedPackage.name}` : "Therapy Session Fee Collection",
     });
-    setTimeout(() => {
-      setSubmitting(false);
-      close();
-    }, 900);
+    setSubmitting(false);
+    close();
   };
 
   const needsReference = method !== "Cash";

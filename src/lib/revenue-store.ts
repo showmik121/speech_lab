@@ -57,6 +57,7 @@ export function saveTransactions(transactions: RevenueTransaction[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
     window.dispatchEvent(new CustomEvent(EVENT_NAME));
+    window.dispatchEvent(new Event("storage"));
   } catch (err) {
     console.error("Error saving revenue transactions to localStorage", err);
   }

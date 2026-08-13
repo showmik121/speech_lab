@@ -411,10 +411,20 @@ export function RegisterPatientDialog({
 
     addPatient(newPatientRecord);
 
-    setTimeout(() => {
-      setSubmitting(false);
-      setSubmitted(true);
-    }, 900);
+    if (numericFirst > 0) {
+      addRevenueTransaction({
+        patientOrCustomerName: patientName.trim(),
+        category: serviceType === "package" ? "Package Subscription" : "Therapy Session",
+        amount: totalAmount,
+        paidAmount: numericFirst,
+        dueAmount: numericDue,
+        method: (paymentMethod as any) || "Cash",
+        remarks: `Registration Payment (${serviceName})`,
+      });
+    }
+
+    setSubmitting(false);
+    setSubmitted(true);
   };
 
   const currentStep = STEPS[step - 1];
@@ -1083,13 +1093,17 @@ function StepProgrammePayment({
 
           <div className="grid gap-4 sm:grid-cols-2">
             {/* Total Amount */}
-            <FormField id="total-amount" label="Total Amount (৳)" required>
+            <FormField id="total-amount" label="Total Amount (৳)" required hint={isTherapy ? "Fixed service fee" : undefined}>
               <Input
                 id="total-amount"
                 type="number"
                 placeholder="e.g. 18500"
                 value={customAmount}
                 onChange={(e) => onCustomAmountChange(e.target.value)}
+                readOnly={isTherapy}
+                className={cn(
+                  isTherapy && "bg-muted/60 text-foreground font-bold cursor-not-allowed select-none border-border/80"
+                )}
               />
             </FormField>
 
@@ -1149,10 +1163,10 @@ function StepProgrammePayment({
                   readOnly
                   value={numericDue}
                   className={cn(
-                    "font-bold",
+                    "font-bold cursor-not-allowed select-none",
                     numericDue === 0
-                      ? "bg-emerald-500/8 text-emerald-600 dark:text-emerald-400"
-                      : "bg-amber-500/8 text-amber-600 dark:text-amber-400"
+                      ? "bg-emerald-500/8 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                      : "bg-amber-500/8 text-amber-600 dark:text-amber-400 border-amber-500/30"
                   )}
                 />
               </FormField>
