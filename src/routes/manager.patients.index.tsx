@@ -18,7 +18,7 @@ import {
   type PatientColumnKey,
 } from "@/components/patients/patient-columns";
 import { PatientKpiCards } from "@/components/patients/patient-kpi-cards";
-import { PATIENTS } from "@/constants/patient-data";
+import { usePatientStore } from "@/lib/patient-store";
 
 const PAGE_SIZE = 8;
 
@@ -52,6 +52,7 @@ function withinRange(registeredAt: string, range: string) {
 }
 
 function PatientManagementPage() {
+  const { patients } = usePatientStore();
   const [filters, setFilters] = useState<PatientFilterState>(DEFAULT_PATIENT_FILTERS);
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
@@ -61,7 +62,7 @@ function PatientManagementPage() {
 
   const filtered = useMemo(() => {
     const query = filters.search.trim().toLowerCase();
-    return PATIENTS.filter((patient) => {
+    return patients.filter((patient) => {
       const matchesQuery =
         !query ||
         [patient.name, patient.code, patient.phone, patient.guardian.phone, patient.guardian.name]
@@ -79,7 +80,7 @@ function PatientManagementPage() {
         withinRange(patient.registeredAt, filters.range)
       );
     });
-  }, [filters]);
+  }, [patients, filters]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -99,22 +100,18 @@ function PatientManagementPage() {
     <div className="space-y-8">
       <PageHeader
         title="Patient Management"
-        description="Manage all patients, registrations and therapy journeys."
+        description="Manage all patients, registrations and therapy journeys in real time."
         breadcrumbs={[
           { label: "Branch Manager", to: "/manager" },
           { label: "Patient Management" },
         ]}
         actions={
           <>
-            <Button variant="outline" disabled title="Import arrives with the data migration tool">
-              <Upload className="h-4 w-4" aria-hidden="true" />
-              Import
-            </Button>
-            <Button variant="outline">
+            <Button variant="outline" className="gap-1.5 text-xs">
               <Download className="h-4 w-4" aria-hidden="true" />
               Export
             </Button>
-            <Button onClick={() => setCreateOpen(true)}>
+            <Button onClick={() => setCreateOpen(true)} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs">
               <Plus className="h-4 w-4" aria-hidden="true" />
               Register Patient
             </Button>

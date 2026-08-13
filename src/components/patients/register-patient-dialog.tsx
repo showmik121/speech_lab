@@ -1,11 +1,28 @@
-import { useEffect, useMemo, useState } from "react";
-import { Check, ImagePlus, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Activity,
+  BadgeDollarSign,
+  CheckCircle2,
+  ChevronRight,
+  ClipboardPlus,
+  CreditCard,
+  Hash,
+  Heart,
+  Loader2,
+  Package,
+  Phone,
+  ShieldCheck,
+  Stethoscope,
+  User,
+  UserCog,
+  Users,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -24,24 +41,74 @@ import {
   GENDERS,
   GUARDIAN_RELATIONS,
   calculateAge,
+  type Patient,
 } from "@/constants/patient-data";
 import { PAYMENT_PACKAGES } from "@/constants/payment-data";
 import { THERAPY_TYPES } from "@/constants/therapy-types";
 import { formatTaka } from "@/constants/dashboard-data";
 import { addRevenueTransaction } from "@/lib/revenue-store";
+import { addPatient } from "@/lib/patient-store";
+import { getActiveBranch } from "@/lib/manager-session";
 
+/* ─────────────────────────────────────────────
+   Step Config — 3 streamlined steps
+   ───────────────────────────────────────────── */
 const STEPS = [
-  { id: 1, title: "Personal", description: "Identity and contact details" },
-  { id: 2, title: "Guardian", description: "Primary caregiver information" },
-  { id: 3, title: "Medical", description: "Concerns and clinical history" },
-  { id: 4, title: "Programme", description: "Therapy plan and scheduling" },
-  { id: 5, title: "Payment", description: "Billing setup and fees" },
+  {
+    id: 1,
+    key: "patient",
+    title: "Patient & Guardian",
+    subtitle: "Identity, contact & caregiver",
+    icon: User,
+    color: "text-blue-500",
+    bg: "bg-blue-500/10",
+    border: "border-blue-500/30",
+    activeBg: "bg-blue-500",
+  },
+  {
+    id: 2,
+    key: "medical",
+    title: "Medical Info",
+    subtitle: "Concerns & clinical history",
+    icon: Heart,
+    color: "text-rose-500",
+    bg: "bg-rose-500/10",
+    border: "border-rose-500/30",
+    activeBg: "bg-rose-500",
+  },
+  {
+    id: 3,
+    key: "programme",
+    title: "Programme & Payment",
+    subtitle: "Therapy plan & billing",
+    icon: CreditCard,
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/30",
+    activeBg: "bg-emerald-500",
+  },
 ];
 
-/**
- * UI-only multi-step patient registration flow.
- * No data is persisted — submission is simulated until the API is connected.
- */
+/* ─────────────────────────────────────────────
+   Generate a unique patient ID
+   ───────────────────────────────────────────── */
+function generatePatientId(branchId?: string): string {
+  const BRANCH_CODES: Record<string, string> = {
+    "dhaka-main": "DHK",
+    "gulshan": "GLS",
+    "uttara": "UTT",
+    "chittagong": "CTG",
+    "sylhet": "SYL",
+  };
+  const branchCode = branchId ? (BRANCH_CODES[branchId] ?? "BRN") : "DHK";
+  const timestamp = Date.now();
+  const seq = Math.floor((timestamp % 100000) / 10); // 4-digit from timestamp
+  return `PT-${branchCode}-${String(seq).padStart(4, "0")}`;
+}
+
+/* ─────────────────────────────────────────────
+   Main Dialog Component
+   ───────────────────────────────────────────── */
 export function RegisterPatientDialog({
   open,
   onOpenChange,
@@ -49,632 +116,1073 @@ export function RegisterPatientDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const branch = getActiveBranch();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
-  const [dob, setDob] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Patient identity
+  const [patientId] = useState(() => generatePatientId(branch?.id));
+  const [patientName, setPatientName] = useState("");
+  const [dob, setDob] = useState("");
+  const [gender, setGender] = useState("");
+  const [bloodGroup, setBloodGroup] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+
+  // Guardian
+  const [guardianName, setGuardianName] = useState("");
+  const [guardianRelation, setGuardianRelation] = useState("");
+  const [guardianPhone, setGuardianPhone] = useState("");
+  const [emergencyPhone, setEmergencyPhone] = useState("");
+
+  // Medical
+  const [primaryConcern, setPrimaryConcern] = useState("");
+  const [referralDoctor, setReferralDoctor] = useState("");
+  const [medicalHistory, setMedicalHistory] = useState("");
+
+  // Programme & Payment
   const [serviceType, setServiceType] = useState<"package" | "therapy">("package");
   const [selectedServiceId, setSelectedServiceId] = useState<string>("");
+  const [paymentType, setPaymentType] = useState<"Full Payment" | "Monthly" | "Installment">("Full Payment");
+  const [firstPayment, setFirstPayment] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [customAmount, setCustomAmount] = useState("");
 
   const age = useMemo(() => calculateAge(dob), [dob]);
 
-  const selectedServicePrice = useMemo(() => {
-    if (!selectedServiceId) return undefined;
-    if (serviceType === "package") {
-      const pkg = PAYMENT_PACKAGES.find((p) => p.id === selectedServiceId || p.name === selectedServiceId);
-      return pkg ? pkg.price : undefined;
-    } else {
-      const thr = THERAPY_TYPES.find((t) => t.id === selectedServiceId || t.name === selectedServiceId);
-      return thr && thr.fees.length > 0 ? thr.fees[0].price : undefined;
+  // Clear a specific field error
+  const clearError = (field: string) => {
+    if (errors[field]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
     }
+  };
+
+  // Derive selected service info
+  const selectedService = useMemo(() => {
+    if (!selectedServiceId) return null;
+    if (serviceType === "package") {
+      return PAYMENT_PACKAGES.find((p) => p.id === selectedServiceId) ?? null;
+    }
+    return THERAPY_TYPES.find((t) => t.id === selectedServiceId) ?? null;
   }, [serviceType, selectedServiceId]);
+
+  const basePrice = useMemo(() => {
+    if (!selectedService) return 0;
+    if (serviceType === "package") return (selectedService as typeof PAYMENT_PACKAGES[0]).price;
+    const thr = selectedService as typeof THERAPY_TYPES[0];
+    return thr.fees.length > 0 ? thr.fees[0].price : 0;
+  }, [selectedService, serviceType]);
+
+  const totalAmount = parseFloat(customAmount) || basePrice;
+
+  const isTherapy = serviceType === "therapy";
+  const MONTHLY_PLAN_IDS = ["monthly-individual", "monthly-group"];
+  const isMonthlyPlan = serviceType === "package" && MONTHLY_PLAN_IDS.includes(selectedServiceId);
+
+  const numericFirst = paymentType === "Full Payment" ? totalAmount : parseFloat(firstPayment) || 0;
+  const numericDue = Math.max(0, totalAmount - numericFirst);
+
+  // Reset payment type when service changes
+  useEffect(() => {
+    if (isTherapy) setPaymentType("Full Payment");
+    else if (isMonthlyPlan) setPaymentType("Monthly");
+    else setPaymentType("Full Payment");
+    setFirstPayment("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedServiceId, serviceType]);
+
+  // Sync custom amount when service changes
+  useEffect(() => {
+    setCustomAmount(basePrice > 0 ? String(basePrice) : "");
+  }, [basePrice]);
+
+  const reset = () => {
+    setStep(1);
+    setSubmitted(false);
+    setErrors({});
+    setPatientName("");
+    setDob("");
+    setGender("");
+    setBloodGroup("");
+    setPhone("");
+    setAddress("");
+    setGuardianName("");
+    setGuardianRelation("");
+    setGuardianPhone("");
+    setEmergencyPhone("");
+    setPrimaryConcern("");
+    setReferralDoctor("");
+    setMedicalHistory("");
+    setServiceType("package");
+    setSelectedServiceId("");
+    setPaymentType("Full Payment");
+    setFirstPayment("");
+    setPaymentMethod("");
+    setCustomAmount("");
+  };
 
   const close = () => {
     onOpenChange(false);
-    setTimeout(() => setStep(1), 200);
+    setTimeout(reset, 300);
+  };
+
+  /* ─────────────────────────────────────────────
+     Validation
+     ───────────────────────────────────────────── */
+  const validateStep1 = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!patientName.trim()) newErrors.patientName = "Patient full name is required";
+    if (!dob) newErrors.dob = "Date of birth is required";
+    if (!gender) newErrors.gender = "Gender selection is required";
+    if (!phone.trim()) newErrors.phone = "Contact number is required";
+    if (!address.trim()) newErrors.address = "Address is required";
+    if (!guardianName.trim()) newErrors.guardianName = "Guardian name is required";
+    if (!guardianRelation) newErrors.guardianRelation = "Relationship is required";
+    if (!guardianPhone.trim()) newErrors.guardianPhone = "Guardian phone is required";
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      toast.error("Required Fields Missing", {
+        description: "Please fill in all required patient and guardian fields marked with *.",
+      });
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep3 = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!selectedServiceId) {
+      newErrors.selectedServiceId = "Please select a package or therapy service";
+    }
+
+    if (!paymentMethod) {
+      newErrors.paymentMethod = "Please select a payment method";
+    }
+
+    if (paymentType === "Installment") {
+      const firstNum = parseFloat(firstPayment) || 0;
+      if (!firstPayment.trim() || firstNum <= 0) {
+        newErrors.firstPayment = "First payment is required and must be greater than 0";
+      } else if (firstNum > totalAmount) {
+        newErrors.firstPayment = `First payment cannot exceed total amount (৳${totalAmount.toLocaleString()})`;
+      }
+    }
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      toast.error("Programme & Payment Incomplete", {
+        description: "Please select a service and payment method before completing registration.",
+      });
+      return false;
+    }
+    return true;
+  };
+
+  const handleContinue = () => {
+    if (step === 1) {
+      if (!validateStep1()) return;
+      setStep(2);
+    } else if (step === 2) {
+      setStep(3);
+    }
+  };
+
+  const handleStepClick = (targetStep: number) => {
+    if (targetStep > step) {
+      if (step === 1 && !validateStep1()) return;
+    }
+    setStep(targetStep);
   };
 
   const submit = () => {
+    if (!validateStep3()) return;
+
     setSubmitting(true);
-    const amount = selectedServicePrice ?? 15000;
+
+    const serviceName = selectedService
+      ? "name" in selectedService
+        ? selectedService.name
+        : ""
+      : "No programme";
+
+    // 1. Add revenue transaction
     addRevenueTransaction({
-      patientOrCustomerName: "Newly Registered Patient",
+      patientOrCustomerName: patientName || "New Patient",
       category: "Patient Enrollment",
-      amount,
-      paidAmount: amount,
-      dueAmount: 0,
-      method: "Mobile Banking",
-      remarks: "Patient Enrollment & Registration Fee",
+      amount: totalAmount,
+      paidAmount: numericFirst,
+      dueAmount: numericDue,
+      method: (paymentMethod as any) || "Cash",
+      remarks: `Registration ${patientId} — ${serviceName}`,
     });
+
+    // 2. Add patient record to patient-store
+    const newPatientRecord: Patient = {
+      id: `pt-record-${Date.now()}`,
+      code: patientId,
+      name: patientName || "New Patient",
+      dob: dob || new Date().toISOString().slice(0, 10),
+      age: parseInt(age) || 5,
+      gender: (gender as any) || "Male",
+      bloodGroup: bloodGroup || "O+",
+      address: address || "Dhaka, Bangladesh",
+      phone: phone || "+880 1700-000000",
+      email: "",
+      branch: branch?.name || "Dhaka Main Branch",
+      guardian: {
+        name: guardianName || "Caregiver",
+        relation: guardianRelation || "Parent",
+        phone: guardianPhone || phone || "+880 1700-000000",
+        email: "",
+        occupation: "",
+      },
+      emergencyContact: {
+        name: guardianName || "Caregiver",
+        relation: guardianRelation || "Parent",
+        phone: emergencyPhone || guardianPhone || phone || "+880 1700-000000",
+      },
+      medical: {
+        primaryConcern: primaryConcern || "Speech and language evaluation",
+        diagnosis: "Provisional",
+        history: medicalHistory || "None",
+        referralDoctor: referralDoctor || "Self-referred",
+        notes: "",
+      },
+      program: {
+        therapyType: serviceType === "package" ? "Package Enrollment" : serviceName,
+        program: serviceName,
+        assessmentDate: new Date().toISOString().slice(0, 10),
+        therapist: "Assigned Therapist",
+        expectedStart: new Date().toISOString().slice(0, 10),
+        sessionsCompleted: 0,
+        sessionsPlanned: 12,
+      },
+      billing: {
+        paymentType: paymentType as any,
+        packageName: serviceName,
+        registrationFee: 0,
+        totalBilled: totalAmount,
+        totalPaid: numericFirst,
+        due: numericDue,
+        lastPaymentDate: new Date().toISOString().slice(0, 10),
+        lastPaymentAmount: numericFirst,
+        remarks: `Payment via ${paymentMethod}`,
+      },
+      followUp: {
+        note: "Initial registration completed",
+        date: new Date().toISOString().slice(0, 10),
+        by: "Front Desk",
+      },
+      status: "Active",
+      paymentStatus: numericDue === 0 ? "Paid" : numericFirst > 0 ? "Partially Paid" : "Due",
+      lastVisit: new Date().toISOString().slice(0, 10),
+      nextSession: null,
+      registeredAt: new Date().toISOString().slice(0, 10),
+      timeline: [
+        {
+          id: `t-${Date.now()}`,
+          title: "Patient Registered",
+          description: `Enrolled in ${serviceName} with ${paymentType}`,
+          date: new Date().toISOString().slice(0, 10),
+          icon: "registered",
+          tone: "info",
+        },
+      ],
+    };
+
+    addPatient(newPatientRecord);
+
     setTimeout(() => {
       setSubmitting(false);
-      close();
+      setSubmitted(true);
     }, 900);
   };
 
-  const current = STEPS[step - 1];
+  const currentStep = STEPS[step - 1];
 
   return (
     <Dialog
       open={open}
       onOpenChange={(next) => {
         if (!next) close();
-        else onOpenChange(true);
       }}
     >
-      <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto rounded-xl">
-        <DialogHeader>
-          <DialogTitle>Register patient</DialogTitle>
-          <DialogDescription>
-            Complete five short steps to create a new patient record.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent
+        className="max-h-[95vh] w-full max-w-4xl overflow-hidden rounded-2xl border-border p-0 shadow-2xl [&>button]:hidden"
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
+        <DialogTitle className="sr-only">Register New Patient</DialogTitle>
 
-        {/* Step indicator */}
-        <ol className="flex items-center gap-2 border-b border-border pb-5">
-          {STEPS.map((item, index) => {
-            const state = step === item.id ? "current" : step > item.id ? "done" : "todo";
-            return (
-              <li key={item.id} className="flex min-w-0 flex-1 items-center gap-2.5">
-                <span
-                  className={cn(
-                    "grid h-7 w-7 shrink-0 place-items-center rounded-full border text-[12px] font-semibold transition-enterprise",
-                    state === "current" && "border-primary bg-primary text-primary-foreground",
-                    state === "done" && "border-success/40 bg-success/12 text-success",
-                    state === "todo" && "border-border bg-muted/50 text-muted-foreground",
-                  )}
-                  aria-current={state === "current" ? "step" : undefined}
-                >
-                  {state === "done" ? <Check className="h-3.5 w-3.5" /> : item.id}
-                </span>
-                <span className="hidden min-w-0 lg:block">
-                  <span
-                    className={cn(
-                      "block truncate text-[13px] font-medium",
-                      state === "todo" ? "text-muted-foreground" : "text-foreground",
-                    )}
-                  >
-                    {item.title}
-                  </span>
-                </span>
-                {index < STEPS.length - 1 ? (
-                  <span className="h-px flex-1 bg-border" aria-hidden="true" />
-                ) : null}
-              </li>
-            );
-          })}
-        </ol>
-
-        <div className="lg:hidden">
-          <p className="text-[13px] font-medium text-foreground">
-            Step {step} of {STEPS.length} — {current.title}
-          </p>
-          <p className="text-[12.5px] text-muted-foreground">{current.description}</p>
-        </div>
-
-        {step === 1 ? (
-          <StepPersonal dob={dob} onDobChange={setDob} age={age} />
-        ) : step === 2 ? (
-          <StepGuardian />
-        ) : step === 3 ? (
-          <StepMedical />
-        ) : step === 4 ? (
-          <StepProgramme
-            serviceType={serviceType}
-            onServiceTypeChange={setServiceType}
-            selectedServiceId={selectedServiceId}
-            onSelectedServiceIdChange={setSelectedServiceId}
-          />
+        {submitted ? (
+          <SuccessScreen patientId={patientId} patientName={patientName} onClose={close} />
         ) : (
-          <StepPayment
-            key={`${serviceType}-${selectedServiceId}`}
-            selectedServicePrice={selectedServicePrice}
-            selectedServiceId={selectedServiceId}
-            serviceType={serviceType}
-          />
-        )}
+          <div className="flex h-full max-h-[95vh]">
+            {/* ── Left Sidebar ── */}
+            <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-muted/30 lg:flex">
+              {/* Header */}
+              <div className="border-b border-border p-5">
+                <div className="flex items-center gap-2.5 mb-3">
+                  <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground">
+                    <UserCog className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="text-[13px] font-bold text-foreground">New Patient</p>
+                    <p className="text-[11px] text-muted-foreground">Registration Form</p>
+                  </div>
+                </div>
+                {/* Patient ID Badge */}
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2">
+                  <Hash className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Patient ID</p>
+                    <p className="text-[13px] font-bold tabular-nums text-primary">{patientId}</p>
+                  </div>
+                </div>
+              </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-border pt-5">
-          <Button variant="ghost" onClick={close}>
-            Cancel
-          </Button>
-          <div className="flex items-center gap-2.5">
-            {step > 1 ? (
-              <Button variant="outline" onClick={() => setStep(step - 1)}>
-                Back
-              </Button>
-            ) : null}
-            {step < STEPS.length ? (
-              <Button onClick={() => setStep(step + 1)}>Continue</Button>
-            ) : (
-              <Button onClick={submit} disabled={submitting}>
-                {submitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                ) : null}
-                Register patient
-              </Button>
-            )}
+              {/* Steps */}
+              <nav className="flex-1 p-4 space-y-2">
+                {STEPS.map((s) => {
+                  const Icon = s.icon;
+                  const state = step === s.id ? "active" : step > s.id ? "done" : "todo";
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => handleStepClick(s.id)}
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-all cursor-pointer",
+                        state === "active" && `${s.border} ${s.bg}`,
+                        state === "done" && "border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10",
+                        state === "todo" && "border-transparent bg-transparent opacity-50 hover:opacity-80"
+                      )}
+                    >
+                      <span className={cn(
+                        "grid h-8 w-8 shrink-0 place-items-center rounded-lg",
+                        state === "active" && `${s.activeBg} text-white`,
+                        state === "done" && "bg-emerald-500 text-white",
+                        state === "todo" && "bg-muted text-muted-foreground",
+                      )}>
+                        {state === "done"
+                          ? <CheckCircle2 className="h-4.5 w-4.5" />
+                          : <Icon className="h-4 w-4" />}
+                      </span>
+                      <div className="min-w-0">
+                        <p className={cn("text-[12.5px] font-semibold truncate",
+                          state === "active" ? s.color : state === "done" ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
+                        )}>
+                          {s.title}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground truncate">{s.subtitle}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </nav>
+
+              {/* Branch Info */}
+              <div className="border-t border-border p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Branch</p>
+                <p className="text-[12.5px] font-medium text-foreground">{branch?.name ?? "Dhaka Main Branch"}</p>
+              </div>
+            </aside>
+
+            {/* ── Right Main Content ── */}
+            <div className="flex min-w-0 flex-1 flex-col">
+              {/* Step Header */}
+              <div className={cn(
+                "flex items-center gap-3 border-b border-border px-6 py-4",
+                currentStep.bg
+              )}>
+                <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white", currentStep.activeBg)}>
+                  <currentStep.icon className="h-5 w-5" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className={cn("text-[15px] font-bold", currentStep.color)}>{currentStep.title}</p>
+                  <p className="text-[12px] text-muted-foreground">{currentStep.subtitle}</p>
+                </div>
+                {/* Mobile: step indicator */}
+                <div className="flex items-center gap-1.5 lg:hidden">
+                  {STEPS.map((s) => (
+                    <span key={s.id} className={cn(
+                      "h-2 rounded-full transition-all",
+                      s.id === step ? `${currentStep.activeBg} w-5` : s.id < step ? "bg-emerald-500 w-2" : "bg-muted w-2"
+                    )} />
+                  ))}
+                </div>
+                <span className="hidden lg:block text-[12px] font-medium text-muted-foreground mr-2">
+                  Step {step} / {STEPS.length}
+                </span>
+
+                {/* ── Prominent Working Close (X) Button ── */}
+                <button
+                  type="button"
+                  onClick={close}
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer shadow-xs"
+                  aria-label="Close dialog"
+                  title="Close dialog (X)"
+                >
+                  <X className="h-4.5 w-4.5" />
+                </button>
+              </div>
+
+              {/* Form Body */}
+              <div className="flex-1 overflow-y-auto px-6 py-5">
+                {step === 1 && (
+                  <StepPatientGuardian
+                    patientId={patientId}
+                    patientName={patientName} onPatientNameChange={(v) => { setPatientName(v); clearError("patientName"); }}
+                    dob={dob} onDobChange={(v) => { setDob(v); clearError("dob"); }}
+                    age={age}
+                    gender={gender} onGenderChange={(v) => { setGender(v); clearError("gender"); }}
+                    bloodGroup={bloodGroup} onBloodGroupChange={setBloodGroup}
+                    phone={phone} onPhoneChange={(v) => { setPhone(v); clearError("phone"); }}
+                    address={address} onAddressChange={(v) => { setAddress(v); clearError("address"); }}
+                    guardianName={guardianName} onGuardianNameChange={(v) => { setGuardianName(v); clearError("guardianName"); }}
+                    guardianRelation={guardianRelation} onGuardianRelationChange={(v) => { setGuardianRelation(v); clearError("guardianRelation"); }}
+                    guardianPhone={guardianPhone} onGuardianPhoneChange={(v) => { setGuardianPhone(v); clearError("guardianPhone"); }}
+                    emergencyPhone={emergencyPhone} onEmergencyPhoneChange={setEmergencyPhone}
+                    errors={errors}
+                  />
+                )}
+                {step === 2 && (
+                  <StepMedical
+                    primaryConcern={primaryConcern} onPrimaryConcernChange={setPrimaryConcern}
+                    referralDoctor={referralDoctor} onReferralDoctorChange={setReferralDoctor}
+                    medicalHistory={medicalHistory} onMedicalHistoryChange={setMedicalHistory}
+                  />
+                )}
+                {step === 3 && (
+                  <StepProgrammePayment
+                    serviceType={serviceType} onServiceTypeChange={(v) => { setServiceType(v); setSelectedServiceId(""); clearError("selectedServiceId"); }}
+                    selectedServiceId={selectedServiceId} onSelectedServiceIdChange={(v) => { setSelectedServiceId(v); clearError("selectedServiceId"); }}
+                    selectedService={selectedService}
+                    basePrice={basePrice}
+                    totalAmount={totalAmount}
+                    customAmount={customAmount} onCustomAmountChange={setCustomAmount}
+                    isTherapy={isTherapy}
+                    isMonthlyPlan={isMonthlyPlan}
+                    paymentType={paymentType} onPaymentTypeChange={(v) => { setPaymentType(v as any); setFirstPayment(""); clearError("firstPayment"); }}
+                    firstPayment={firstPayment} onFirstPaymentChange={(v) => { setFirstPayment(v); clearError("firstPayment"); }}
+                    numericDue={numericDue}
+                    paymentMethod={paymentMethod} onPaymentMethodChange={(v) => { setPaymentMethod(v); clearError("paymentMethod"); }}
+                    errors={errors}
+                  />
+                )}
+              </div>
+
+              {/* Footer Nav */}
+              <div className="flex items-center justify-between border-t border-border bg-muted/20 px-6 py-4">
+                <Button variant="ghost" onClick={close} className="text-muted-foreground hover:text-foreground">
+                  Cancel
+                </Button>
+                <div className="flex items-center gap-3">
+                  {step > 1 && (
+                    <Button variant="outline" onClick={() => setStep(step - 1)} className="gap-1.5">
+                      Back
+                    </Button>
+                  )}
+                  {step < STEPS.length ? (
+                    <Button
+                      onClick={handleContinue}
+                      className={cn("gap-1.5 px-5 cursor-pointer", currentStep.activeBg, "border-0 text-white hover:opacity-90")}
+                    >
+                      Continue
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={submit}
+                      disabled={submitting}
+                      className="gap-2 bg-emerald-600 px-6 text-white hover:bg-emerald-700 cursor-pointer shadow-md"
+                    >
+                      {submitting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <ShieldCheck className="h-4 w-4" />
+                      )}
+                      Register Patient
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </DialogContent>
     </Dialog>
   );
 }
 
-function StepPersonal({
-  dob,
-  onDobChange,
-  age,
+/* ─────────────────────────────────────────────
+   Step 1 — Patient & Guardian (combined)
+   ───────────────────────────────────────────── */
+function StepPatientGuardian({
+  patientId,
+  patientName, onPatientNameChange,
+  dob, onDobChange, age,
+  gender, onGenderChange,
+  bloodGroup, onBloodGroupChange,
+  phone, onPhoneChange,
+  address, onAddressChange,
+  guardianName, onGuardianNameChange,
+  guardianRelation, onGuardianRelationChange,
+  guardianPhone, onGuardianPhoneChange,
+  emergencyPhone, onEmergencyPhoneChange,
+  errors,
 }: {
-  dob: string;
-  onDobChange: (value: string) => void;
-  age: string;
+  patientId: string;
+  patientName: string; onPatientNameChange: (v: string) => void;
+  dob: string; onDobChange: (v: string) => void; age: string;
+  gender: string; onGenderChange: (v: string) => void;
+  bloodGroup: string; onBloodGroupChange: (v: string) => void;
+  phone: string; onPhoneChange: (v: string) => void;
+  address: string; onAddressChange: (v: string) => void;
+  guardianName: string; onGuardianNameChange: (v: string) => void;
+  guardianRelation: string; onGuardianRelationChange: (v: string) => void;
+  guardianPhone: string; onGuardianPhoneChange: (v: string) => void;
+  emergencyPhone: string; onEmergencyPhoneChange: (v: string) => void;
+  errors: Record<string, string>;
 }) {
   return (
-    <div className="grid gap-5 py-2 sm:grid-cols-2">
-      <FormField
-        id="patient-photo"
-        label="Patient photo"
-        hint="JPG or PNG, up to 2 MB"
-        className="sm:col-span-2"
-      >
-        <div className="flex items-center gap-4 rounded-lg border border-dashed border-border bg-muted/30 p-4">
-          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full border border-border bg-background text-muted-foreground">
-            <ImagePlus className="h-5 w-5" aria-hidden="true" />
+    <div className="space-y-6">
+      {/* Patient Section */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <span className="grid h-6 w-6 place-items-center rounded-md bg-blue-500/15 text-blue-500">
+            <User className="h-3.5 w-3.5" />
           </span>
-          <div className="min-w-0">
-            <p className="text-[13px] font-medium text-foreground">Upload placeholder</p>
-            <p className="text-[12.5px] text-muted-foreground">
-              Photo upload is enabled once storage is connected.
-            </p>
-          </div>
+          <h3 className="text-[13px] font-bold text-foreground uppercase tracking-wide">Patient Information</h3>
         </div>
-      </FormField>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {/* Auto-generated patient ID — read-only */}
+          <FormField id="patient-id" label="Patient ID" hint="Auto-generated unique identifier">
+            <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2.5">
+              <Hash className="h-4 w-4 shrink-0 text-primary" />
+              <span className="font-bold tabular-nums text-primary text-sm">{patientId}</span>
+            </div>
+          </FormField>
 
-      <FormField id="patient-name" label="Full name" required>
-        <Input id="patient-name" placeholder="e.g. Rahim Ahmed" />
-      </FormField>
-      <FormField id="patient-dob" label="Date of birth" required>
-        <Input
-          id="patient-dob"
-          type="date"
-          value={dob}
-          onChange={(event) => onDobChange(event.target.value)}
-        />
-      </FormField>
-      <FormField id="patient-age" label="Age" hint="Calculated automatically from date of birth">
-        <Input
-          id="patient-age"
-          readOnly
-          value={age ? `${age} years` : ""}
-          placeholder="—"
-          className="bg-muted/40"
-        />
-      </FormField>
-      <FormField id="patient-gender" label="Gender" required>
-        <Select>
-          <SelectTrigger id="patient-gender">
-            <SelectValue placeholder="Select gender" />
-          </SelectTrigger>
-          <SelectContent>
-            {GENDERS.map((gender) => (
-              <SelectItem key={gender} value={gender}>
-                {gender}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FormField>
-      <FormField id="patient-blood" label="Blood group">
-        <Select>
-          <SelectTrigger id="patient-blood">
-            <SelectValue placeholder="Select blood group" />
-          </SelectTrigger>
-          <SelectContent>
-            {BLOOD_GROUPS.map((group) => (
-              <SelectItem key={group} value={group}>
-                {group}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FormField>
-      <FormField id="patient-phone" label="Contact number" required>
-        <Input id="patient-phone" placeholder="+880 17XX-XXXXXX" />
-      </FormField>
-      <FormField id="patient-address" label="Address" required className="sm:col-span-2">
-        <Textarea id="patient-address" rows={2} placeholder="House, road, area, city, postcode" />
-      </FormField>
-    </div>
-  );
-}
+          <FormField id="patient-name" label="Full Name" required error={errors.patientName}>
+            <Input
+              id="patient-name"
+              placeholder="e.g. Rahim Ahmed"
+              value={patientName}
+              onChange={(e) => onPatientNameChange(e.target.value)}
+              className={cn(errors.patientName && "border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/5")}
+            />
+          </FormField>
 
-function StepGuardian() {
-  return (
-    <div className="grid gap-5 py-2 sm:grid-cols-2">
-      <FormField id="guardian-name" label="Guardian name" required>
-        <Input id="guardian-name" placeholder="e.g. Md. Karim Ahmed" />
-      </FormField>
-      <FormField id="guardian-relation" label="Relationship" required>
-        <Select>
-          <SelectTrigger id="guardian-relation">
-            <SelectValue placeholder="Select relationship" />
-          </SelectTrigger>
-          <SelectContent>
-            {GUARDIAN_RELATIONS.map((relation) => (
-              <SelectItem key={relation} value={relation}>
-                {relation}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FormField>
-      <FormField id="guardian-phone" label="Phone" required>
-        <Input id="guardian-phone" placeholder="+880 17XX-XXXXXX" />
-      </FormField>
-      <FormField id="guardian-email" label="Email">
-        <Input id="guardian-email" type="email" placeholder="guardian@example.com" />
-      </FormField>
-      <FormField id="guardian-occupation" label="Occupation">
-        <Input id="guardian-occupation" placeholder="e.g. Bank Officer" />
-      </FormField>
-      <FormField
-        id="emergency-contact"
-        label="Emergency contact"
-        hint="Alternate number reachable during sessions"
-        required
-      >
-        <Input id="emergency-contact" placeholder="+880 18XX-XXXXXX" />
-      </FormField>
-    </div>
-  );
-}
+          <FormField id="patient-dob" label="Date of Birth" required error={errors.dob}>
+            <Input
+              id="patient-dob"
+              type="date"
+              value={dob}
+              onChange={(e) => onDobChange(e.target.value)}
+              className={cn(errors.dob && "border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/5")}
+            />
+          </FormField>
 
-function StepMedical() {
-  return (
-    <div className="grid gap-5 py-2 sm:grid-cols-2">
-      <FormField id="primary-concern" label="Primary concern" required className="sm:col-span-2">
-        <Textarea
-          id="primary-concern"
-          rows={2}
-          placeholder="e.g. Delayed speech development and unclear articulation"
-        />
-      </FormField>
-      <FormField
-        id="diagnosis"
-        label="Diagnosis"
-        hint="Structured diagnosis codes arrive with the clinical module"
-      >
-        <Select disabled>
-          <SelectTrigger id="diagnosis">
-            <SelectValue placeholder="Available after assessment" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="placeholder">Placeholder</SelectItem>
-          </SelectContent>
-        </Select>
-      </FormField>
-      <FormField id="referral-doctor" label="Referral doctor">
-        <Input id="referral-doctor" placeholder="e.g. Dr. Sabrina Chowdhury" />
-      </FormField>
-      <FormField id="medical-history" label="Medical history" className="sm:col-span-2">
-        <Textarea
-          id="medical-history"
-          rows={3}
-          placeholder="Birth history, hearing status, previous therapy, medications…"
-        />
-      </FormField>
-      <FormField id="medical-notes" label="Notes" className="sm:col-span-2">
-        <Textarea id="medical-notes" rows={2} placeholder="Internal notes for the clinical team" />
-      </FormField>
-    </div>
-  );
-}
+          <FormField id="patient-age" label="Age" hint="Calculated from date of birth">
+            <Input
+              id="patient-age"
+              readOnly
+              value={age ? `${age} years` : ""}
+              placeholder="—"
+              className="bg-muted/40 text-muted-foreground"
+            />
+          </FormField>
 
-function StepProgramme({
-  serviceType,
-  onServiceTypeChange,
-  selectedServiceId,
-  onSelectedServiceIdChange,
-}: {
-  serviceType: "package" | "therapy";
-  onServiceTypeChange: (val: "package" | "therapy") => void;
-  selectedServiceId: string;
-  onSelectedServiceIdChange: (val: string) => void;
-}) {
-  const handleServiceTypeChange = (value: "package" | "therapy") => {
-    onServiceTypeChange(value);
-    onSelectedServiceIdChange("");
-  };
+          <FormField id="patient-gender" label="Gender" required error={errors.gender}>
+            <Select value={gender} onValueChange={onGenderChange}>
+              <SelectTrigger id="patient-gender" className={cn(errors.gender && "border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/5")}>
+                <SelectValue placeholder="Select gender" />
+              </SelectTrigger>
+              <SelectContent>
+                {GENDERS.map((g) => (
+                  <SelectItem key={g} value={g}>{g}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
 
-  return (
-    <div className="space-y-5 py-2">
-      {/* 2 Selectable Cards: Left (Package), Right (Therapy) */}
-      <div className="grid grid-cols-2 gap-4">
-        <button
-          type="button"
-          onClick={() => handleServiceTypeChange("package")}
-          className={cn(
-            "flex h-20 items-center justify-center rounded-xl border-2 p-4 text-center transition-all cursor-pointer",
-            serviceType === "package"
-              ? "border-primary bg-primary/10 text-primary font-bold shadow-sm"
-              : "border-border bg-card text-muted-foreground hover:border-muted-foreground/30 hover:bg-muted/30"
-          )}
-        >
-          <span className="text-base font-semibold">Package</span>
-        </button>
+          <FormField id="patient-blood" label="Blood Group">
+            <Select value={bloodGroup} onValueChange={onBloodGroupChange}>
+              <SelectTrigger id="patient-blood">
+                <SelectValue placeholder="Select blood group" />
+              </SelectTrigger>
+              <SelectContent>
+                {BLOOD_GROUPS.map((b) => (
+                  <SelectItem key={b} value={b}>{b}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
 
-        <button
-          type="button"
-          onClick={() => handleServiceTypeChange("therapy")}
-          className={cn(
-            "flex h-20 items-center justify-center rounded-xl border-2 p-4 text-center transition-all cursor-pointer",
-            serviceType === "therapy"
-              ? "border-primary bg-primary/10 text-primary font-bold shadow-sm"
-              : "border-border bg-card text-muted-foreground hover:border-muted-foreground/30 hover:bg-muted/30"
-          )}
-        >
-          <span className="text-base font-semibold">Therapy</span>
-        </button>
+          <FormField id="patient-phone" label="Contact Number" required error={errors.phone}>
+            <Input
+              id="patient-phone"
+              placeholder="+880 17XX-XXXXXX"
+              value={phone}
+              onChange={(e) => onPhoneChange(e.target.value)}
+              className={cn(errors.phone && "border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/5")}
+            />
+          </FormField>
+
+          <FormField id="patient-address" label="Address" required error={errors.address} className="sm:col-span-2">
+            <Textarea
+              id="patient-address"
+              rows={2}
+              placeholder="House, road, area, city"
+              value={address}
+              onChange={(e) => onAddressChange(e.target.value)}
+              className={cn(errors.address && "border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/5")}
+            />
+          </FormField>
+        </div>
       </div>
 
-      {/* Services dropdown (Full Width below cards) */}
-      <FormField id="services-dropdown" label="Services" required className="w-full">
-        <Select
-          value={selectedServiceId}
-          onValueChange={(val) => onSelectedServiceIdChange(val)}
-        >
-          <SelectTrigger id="services-dropdown" className="w-full">
-            <SelectValue
-              placeholder={
-                serviceType === "package" ? "Select package service..." : "Select therapy service..."
-              }
-            />
-          </SelectTrigger>
-          <SelectContent>
-            {serviceType === "package"
-              ? PAYMENT_PACKAGES.map((pkg) => (
-                  <SelectItem key={pkg.id} value={pkg.id}>
-                    {pkg.name}
-                  </SelectItem>
-                ))
-              : THERAPY_TYPES.map((thr) => (
-                  <SelectItem key={thr.id} value={thr.id}>
-                    {thr.name}
-                  </SelectItem>
-                ))}
-          </SelectContent>
-        </Select>
-      </FormField>
-    </div>
-  );
-}
+      {/* Divider */}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center">
+          <span className="flex items-center gap-1.5 bg-background px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <Users className="h-3.5 w-3.5" />
+            Guardian / Caregiver
+          </span>
+        </div>
+      </div>
 
-function StepPayment({
-  selectedServicePrice,
-  selectedServiceId,
-  serviceType,
-}: {
-  selectedServicePrice?: number;
-  selectedServiceId?: string;
-  serviceType?: "package" | "therapy";
-}) {
-  const isTherapy = serviceType === "therapy";
-  const MONTHLY_PLAN_IDS = ["monthly-individual", "monthly-group"];
-  const isMonthlyPlan =
-    serviceType === "package" && !!selectedServiceId && MONTHLY_PLAN_IDS.includes(selectedServiceId);
-
-  // Screening & Assessment: no Monthly option — only Full Payment and Installment
-  const NO_MONTHLY_IDS = ["screening", "assessment"];
-  const isNoMonthlyPlan =
-    serviceType === "package" && !!selectedServiceId && NO_MONTHLY_IDS.includes(selectedServiceId);
-
-  const [totalAmount, setTotalAmount] = useState<string>(
-    selectedServicePrice ? selectedServicePrice.toString() : ""
-  );
-  const [paymentType, setPaymentType] = useState<"Full Payment" | "Monthly" | "Installment">(() => {
-    if (isTherapy) return "Full Payment";
-    if (isMonthlyPlan) return "Monthly";
-    return "Full Payment"; // Screening, Assessment, and all others
-  });
-  const [firstPayment, setFirstPayment] = useState<string>("");
-  const [paymentMethod, setPaymentMethod] = useState<string>("");
-
-  useEffect(() => {
-    if (selectedServicePrice) {
-      setTotalAmount(selectedServicePrice.toString());
-    }
-  }, [selectedServicePrice]);
-
-  // When switching serviceType or serviceId, reset payment type appropriately
-  useEffect(() => {
-    if (isTherapy) {
-      setPaymentType("Full Payment");
-    } else if (isMonthlyPlan) {
-      setPaymentType("Monthly");
-    } else {
-      setPaymentType("Full Payment");
-    }
-    setFirstPayment("");
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedServiceId, serviceType, isTherapy, isMonthlyPlan]);
-
-  const numericTotal = parseFloat(totalAmount) || 0;
-  // For Full Payment & Therapy: total is paid upfront with 0 due amount
-  const numericFirst =
-    paymentType === "Full Payment"
-      ? numericTotal
-      : parseFloat(firstPayment) || 0;
-  const numericDue = Math.max(0, numericTotal - numericFirst);
-  const installmentPeriodAmount = Math.max(0, numericDue / 2);
-
-  return (
-    <div className="space-y-5 py-2">
-      <div className="grid gap-5 sm:grid-cols-2">
-        {/* Total Amount */}
-        <FormField id="total-amount" label="Total Amount (৳)" required>
+      {/* Guardian Section */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField id="guardian-name" label="Guardian Name" required error={errors.guardianName}>
           <Input
-            id="total-amount"
-            type="number"
-            placeholder="e.g. 18500"
-            value={totalAmount}
-            onChange={(e) => setTotalAmount(e.target.value)}
+            id="guardian-name"
+            placeholder="e.g. Md. Karim Ahmed"
+            value={guardianName}
+            onChange={(e) => onGuardianNameChange(e.target.value)}
+            className={cn(errors.guardianName && "border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/5")}
           />
         </FormField>
 
-        {/* Payment Type */}
-        <FormField id="payment-type" label="Payment Type" required>
-          <Select
-            value={paymentType}
-            onValueChange={(val) => {
-              setPaymentType(val as "Full Payment" | "Monthly" | "Installment");
-              setFirstPayment("");
-            }}
-            disabled={isTherapy}
-          >
-            <SelectTrigger id="payment-type">
-              <SelectValue placeholder="Select payment type" />
+        <FormField id="guardian-relation" label="Relationship" required error={errors.guardianRelation}>
+          <Select value={guardianRelation} onValueChange={onGuardianRelationChange}>
+            <SelectTrigger id="guardian-relation" className={cn(errors.guardianRelation && "border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/5")}>
+              <SelectValue placeholder="Select relationship" />
             </SelectTrigger>
             <SelectContent>
-              {isTherapy ? (
-                // Therapy selection: strictly Full Payment only (No due payment)
-                <SelectItem value="Full Payment">Full Payment (No Due)</SelectItem>
-              ) : isMonthlyPlan ? (
-                // Monthly plan packages: only Monthly or Full Payment
-                <>
-                  <SelectItem value="Monthly">Monthly</SelectItem>
-                  <SelectItem value="Full Payment">Full Payment</SelectItem>
-                </>
-              ) : isNoMonthlyPlan ? (
-                // Screening & Assessment: only Full Payment or Installment
-                <>
-                  <SelectItem value="Full Payment">Full Payment</SelectItem>
-                  <SelectItem value="Installment">Installment (3 Periods)</SelectItem>
-                </>
-              ) : (
-                // Other packages: Full Payment, Monthly, Installment
-                <>
-                  <SelectItem value="Full Payment">Full Payment</SelectItem>
-                  <SelectItem value="Monthly">Monthly</SelectItem>
-                  <SelectItem value="Installment">Installment (3 Periods)</SelectItem>
-                </>
-              )}
+              {GUARDIAN_RELATIONS.map((r) => (
+                <SelectItem key={r} value={r}>{r}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </FormField>
 
-        {/* First Payment — only for Installment (not Monthly, not Full Payment) */}
-        {paymentType === "Installment" ? (
-          <>
-            <FormField id="first-payment" label="First Payment (Period 1)" required>
-              <Input
-                id="first-payment"
-                type="number"
-                placeholder="e.g. 6500"
-                value={firstPayment}
-                onChange={(e) => setFirstPayment(e.target.value)}
-              />
-            </FormField>
-            <FormField id="due-payment" label="Due Payment" hint="Calculated automatically">
-              <Input
-                id="due-payment"
-                type="number"
-                readOnly
-                placeholder="0"
-                value={numericDue}
-                className="bg-muted/40 font-semibold text-amber-600 dark:text-amber-400"
-              />
-            </FormField>
-          </>
-        ) : paymentType === "Full Payment" ? (
-          <FormField id="due-payment-full" label="Due Payment">
-            <Input
-              id="due-payment-full"
-              readOnly
-              value="0"
-              className="bg-muted/40 font-semibold text-emerald-600 dark:text-emerald-400"
-            />
-          </FormField>
-        ) : null /* Monthly: no Due Payment field */}
+        <FormField id="guardian-phone" label="Guardian Phone" required error={errors.guardianPhone}>
+          <Input
+            id="guardian-phone"
+            placeholder="+880 17XX-XXXXXX"
+            value={guardianPhone}
+            onChange={(e) => onGuardianPhoneChange(e.target.value)}
+            className={cn(errors.guardianPhone && "border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/5")}
+          />
+        </FormField>
 
-        {/* Payment Method */}
-        <FormField
-          id="payment-method"
-          label="Payment Method"
-          required
-          className={paymentType === "Installment" ? "sm:col-span-2" : ""}
-        >
-          <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-            <SelectTrigger id="payment-method">
-              <SelectValue placeholder="Select payment method" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Cash">Cash</SelectItem>
-              <SelectItem value="Bkash">Bkash</SelectItem>
-              <SelectItem value="Nagad">Nagad</SelectItem>
-              <SelectItem value="Mobile Banking">Mobile Banking</SelectItem>
-            </SelectContent>
-          </Select>
+        <FormField id="emergency-contact" label="Emergency Contact" hint="Alternate number">
+          <Input
+            id="emergency-contact"
+            placeholder="+880 18XX-XXXXXX"
+            value={emergencyPhone}
+            onChange={(e) => onEmergencyPhoneChange(e.target.value)}
+          />
         </FormField>
       </div>
+    </div>
+  );
+}
 
-      {/* Monthly Payment Schedule Policy card */}
-      {paymentType === "Monthly" ? (
-        <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 space-y-2">
-          <div className="flex items-center justify-between">
-            <p className="text-[13.5px] font-semibold text-primary">
-              Monthly Payment Schedule Policy
-            </p>
-            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
-              Days 1–5 of each month
+/* ─────────────────────────────────────────────
+   Step 2 — Medical Info
+   ───────────────────────────────────────────── */
+function StepMedical({
+  primaryConcern, onPrimaryConcernChange,
+  referralDoctor, onReferralDoctorChange,
+  medicalHistory, onMedicalHistoryChange,
+}: {
+  primaryConcern: string; onPrimaryConcernChange: (v: string) => void;
+  referralDoctor: string; onReferralDoctorChange: (v: string) => void;
+  medicalHistory: string; onMedicalHistoryChange: (v: string) => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-3.5 text-[12.5px] text-rose-700 dark:text-rose-400">
+        <span className="font-semibold">ℹ️ Optional Step:</span> Medical info helps therapists prepare better. You can skip and fill it later from the patient profile.
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField id="primary-concern" label="Primary Concern" className="sm:col-span-2">
+          <Textarea
+            id="primary-concern"
+            rows={2}
+            placeholder="e.g. Delayed speech development and unclear articulation"
+            value={primaryConcern}
+            onChange={(e) => onPrimaryConcernChange(e.target.value)}
+          />
+        </FormField>
+
+        <FormField id="referral-doctor" label="Referral Doctor">
+          <Input
+            id="referral-doctor"
+            placeholder="e.g. Dr. Sabrina Chowdhury"
+            value={referralDoctor}
+            onChange={(e) => onReferralDoctorChange(e.target.value)}
+          />
+        </FormField>
+
+        <FormField id="medical-history" label="Medical History" className="sm:col-span-2">
+          <Textarea
+            id="medical-history"
+            rows={3}
+            placeholder="Birth history, hearing status, previous therapy, medications…"
+            value={medicalHistory}
+            onChange={(e) => onMedicalHistoryChange(e.target.value)}
+          />
+        </FormField>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Step 3 — Programme & Payment (combined)
+   ───────────────────────────────────────────── */
+function StepProgrammePayment({
+  serviceType, onServiceTypeChange,
+  selectedServiceId, onSelectedServiceIdChange,
+  selectedService,
+  basePrice,
+  totalAmount,
+  customAmount, onCustomAmountChange,
+  isTherapy, isMonthlyPlan,
+  paymentType, onPaymentTypeChange,
+  firstPayment, onFirstPaymentChange,
+  numericDue,
+  paymentMethod, onPaymentMethodChange,
+  errors,
+}: {
+  serviceType: "package" | "therapy"; onServiceTypeChange: (v: "package" | "therapy") => void;
+  selectedServiceId: string; onSelectedServiceIdChange: (v: string) => void;
+  selectedService: any;
+  basePrice: number;
+  totalAmount: number;
+  customAmount: string; onCustomAmountChange: (v: string) => void;
+  isTherapy: boolean; isMonthlyPlan: boolean;
+  paymentType: "Full Payment" | "Monthly" | "Installment"; onPaymentTypeChange: (v: string) => void;
+  firstPayment: string; onFirstPaymentChange: (v: string) => void;
+  numericDue: number;
+  paymentMethod: string; onPaymentMethodChange: (v: string) => void;
+  errors: Record<string, string>;
+}) {
+  const activePackages = PAYMENT_PACKAGES.filter((p) => p.status === "Active");
+  const activeTherapies = THERAPY_TYPES.filter((t) => t.status === "Active");
+
+  return (
+    <div className="space-y-6">
+      {/* Service Type Toggle */}
+      <div>
+        <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Enroll In</p>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => onServiceTypeChange("package")}
+            className={cn(
+              "flex items-center gap-3 rounded-xl border-2 p-4 text-left transition-all cursor-pointer",
+              serviceType === "package"
+                ? "border-emerald-500 bg-emerald-500/10"
+                : "border-border bg-card hover:border-muted-foreground/30 hover:bg-muted/30"
+            )}
+          >
+            <span className={cn("grid h-10 w-10 place-items-center rounded-xl",
+              serviceType === "package" ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"
+            )}>
+              <Package className="h-5 w-5" />
             </span>
-          </div>
-          <p className="text-[12.5px] text-muted-foreground">
-            Monthly payments must be settled within the{" "}
-            <strong>1st to 5th day</strong> of every month.
-          </p>
-          <div className="rounded-lg border border-border bg-background p-2.5 text-[12.5px]">
-            <span className="text-muted-foreground block text-[11px]">Total Monthly Fee</span>
-            <span className="font-bold text-foreground">{formatTaka(numericTotal)}</span>
-          </div>
+            <div>
+              <p className={cn("font-bold text-[13px]", serviceType === "package" ? "text-emerald-600 dark:text-emerald-400" : "text-foreground")}>
+                Package
+              </p>
+              <p className="text-[11.5px] text-muted-foreground">{activePackages.length} active plans</p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onServiceTypeChange("therapy")}
+            className={cn(
+              "flex items-center gap-3 rounded-xl border-2 p-4 text-left transition-all cursor-pointer",
+              serviceType === "therapy"
+                ? "border-blue-500 bg-blue-500/10"
+                : "border-border bg-card hover:border-muted-foreground/30 hover:bg-muted/30"
+            )}
+          >
+            <span className={cn("grid h-10 w-10 place-items-center rounded-xl",
+              serviceType === "therapy" ? "bg-blue-500 text-white" : "bg-muted text-muted-foreground"
+            )}>
+              <Stethoscope className="h-5 w-5" />
+            </span>
+            <div>
+              <p className={cn("font-bold text-[13px]", serviceType === "therapy" ? "text-blue-600 dark:text-blue-400" : "text-foreground")}>
+                Therapy
+              </p>
+              <p className="text-[11.5px] text-muted-foreground">{activeTherapies.length} therapy types</p>
+            </div>
+          </button>
         </div>
-      ) : paymentType === "Installment" ? (
-        /* 3-Period Installment Breakdown */
-        <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
-          <p className="text-[13px] font-semibold text-foreground">
-            3-Period Installment Schedule Breakdown
+      </div>
+
+      {/* Service List — Card Grid */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Select {serviceType === "package" ? "Package" : "Therapy"} <span className="text-rose-500">*</span>
           </p>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
-                Period 1 (First Payment)
-              </p>
-              <p className="mt-1 text-[16px] font-bold text-primary">
-                {formatTaka(numericFirst)}
-              </p>
-              <span className="text-[11px] text-success font-medium">Due Today</span>
+          {errors.selectedServiceId && (
+            <p className="text-xs font-semibold text-rose-500">{errors.selectedServiceId}</p>
+          )}
+        </div>
+        <div className={cn("grid gap-2.5 sm:grid-cols-2 rounded-xl p-1", errors.selectedServiceId && "ring-2 ring-rose-500/40 bg-rose-500/5")}>
+          {(serviceType === "package" ? activePackages : activeTherapies).map((item) => {
+            const price = serviceType === "package"
+              ? (item as typeof PAYMENT_PACKAGES[0]).price
+              : ((item as typeof THERAPY_TYPES[0]).fees[0]?.price ?? 0);
+            const desc = serviceType === "package"
+              ? (item as typeof PAYMENT_PACKAGES[0]).durationLabel
+              : (item as typeof THERAPY_TYPES[0]).category;
+            const isSelected = selectedServiceId === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onSelectedServiceIdChange(item.id)}
+                className={cn(
+                  "flex items-start gap-3 rounded-xl border-2 p-3.5 text-left transition-all w-full cursor-pointer",
+                  isSelected
+                    ? serviceType === "package"
+                      ? "border-emerald-500 bg-emerald-500/8 shadow-xs"
+                      : "border-blue-500 bg-blue-500/8 shadow-xs"
+                    : "border-border bg-card hover:border-muted-foreground/30 hover:bg-muted/20"
+                )}
+              >
+                <span className={cn(
+                  "mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-bold",
+                  isSelected
+                    ? serviceType === "package" ? "bg-emerald-500 text-white" : "bg-blue-500 text-white"
+                    : "bg-muted text-muted-foreground"
+                )}>
+                  {isSelected ? <CheckCircle2 className="h-4 w-4" /> : <Activity className="h-3.5 w-3.5" />}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-semibold text-foreground truncate">{item.name}</p>
+                  <p className="text-[11.5px] text-muted-foreground">{desc}</p>
+                  <p className={cn("mt-1 text-[13px] font-bold tabular-nums",
+                    isSelected
+                      ? serviceType === "package" ? "text-emerald-600 dark:text-emerald-400" : "text-blue-600 dark:text-blue-400"
+                      : "text-foreground"
+                  )}>
+                    {formatTaka(price)}
+                    {serviceType === "therapy" && <span className="text-[10.5px] text-muted-foreground font-normal"> / session</span>}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Payment Section — only show if service selected */}
+      {selectedServiceId && (
+        <>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
             </div>
-            <div className="rounded-lg border border-border bg-background p-3">
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
-                Period 2 (Installment 2)
-              </p>
-              <p className="mt-1 text-[16px] font-bold text-foreground">
-                {formatTaka(installmentPeriodAmount)}
-              </p>
-              <span className="text-[11px] text-muted-foreground">Due in 30 Days</span>
-            </div>
-            <div className="rounded-lg border border-border bg-background p-3">
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
-                Period 3 (Installment 3)
-              </p>
-              <p className="mt-1 text-[16px] font-bold text-foreground">
-                {formatTaka(installmentPeriodAmount)}
-              </p>
-              <span className="text-[11px] text-muted-foreground">Due in 60 Days</span>
+            <div className="relative flex justify-center">
+              <span className="flex items-center gap-1.5 bg-background px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <CreditCard className="h-3.5 w-3.5" />
+                Payment Setup
+              </span>
             </div>
           </div>
-        </div>
-      ) : null}
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {/* Total Amount */}
+            <FormField id="total-amount" label="Total Amount (৳)" required>
+              <Input
+                id="total-amount"
+                type="number"
+                placeholder="e.g. 18500"
+                value={customAmount}
+                onChange={(e) => onCustomAmountChange(e.target.value)}
+              />
+            </FormField>
+
+            {/* Payment Type */}
+            <FormField id="payment-type" label="Payment Type" required>
+              <Select
+                value={paymentType}
+                onValueChange={onPaymentTypeChange}
+                disabled={isTherapy}
+              >
+                <SelectTrigger id="payment-type">
+                  <SelectValue placeholder="Select payment type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {isTherapy ? (
+                    <SelectItem value="Full Payment">Full Payment (No Due)</SelectItem>
+                  ) : isMonthlyPlan ? (
+                    <>
+                      <SelectItem value="Monthly">Monthly</SelectItem>
+                      <SelectItem value="Full Payment">Full Payment</SelectItem>
+                    </>
+                  ) : (serviceType === "package" && (selectedServiceId === "screening" || selectedServiceId === "assessment")) ? (
+                    <>
+                      <SelectItem value="Full Payment">Full Payment</SelectItem>
+                      <SelectItem value="Installment">Installment (3 Periods)</SelectItem>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value="Full Payment">Full Payment</SelectItem>
+                      <SelectItem value="Monthly">Monthly</SelectItem>
+                      <SelectItem value="Installment">Installment (3 Periods)</SelectItem>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+            </FormField>
+
+            {/* First Payment — Installment only */}
+            {paymentType === "Installment" && (
+              <FormField id="first-payment" label="First Payment (Period 1)" required error={errors.firstPayment}>
+                <Input
+                  id="first-payment"
+                  type="number"
+                  placeholder="e.g. 6500"
+                  value={firstPayment}
+                  onChange={(e) => onFirstPaymentChange(e.target.value)}
+                  className={cn(errors.firstPayment && "border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/5")}
+                />
+              </FormField>
+            )}
+
+            {/* Due Amount */}
+            {paymentType !== "Monthly" && (
+              <FormField id="due-amount" label="Due Amount" hint="Auto-calculated">
+                <Input
+                  id="due-amount"
+                  readOnly
+                  value={numericDue}
+                  className={cn(
+                    "font-bold",
+                    numericDue === 0
+                      ? "bg-emerald-500/8 text-emerald-600 dark:text-emerald-400"
+                      : "bg-amber-500/8 text-amber-600 dark:text-amber-400"
+                  )}
+                />
+              </FormField>
+            )}
+
+            {/* Payment Method */}
+            <FormField
+              id="payment-method"
+              label="Payment Method"
+              required
+              error={errors.paymentMethod}
+              className={paymentType === "Installment" ? "sm:col-span-2" : ""}
+            >
+              <Select value={paymentMethod} onValueChange={onPaymentMethodChange}>
+                <SelectTrigger id="payment-method" className={cn(errors.paymentMethod && "border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/5")}>
+                  <SelectValue placeholder="Select payment method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Cash">💵 Cash</SelectItem>
+                  <SelectItem value="Mobile Banking">📱 bKash / Nagad</SelectItem>
+                  <SelectItem value="Card">💳 Card</SelectItem>
+                  <SelectItem value="Bank Transfer">🏦 Bank Transfer</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormField>
+          </div>
+
+          {/* Payment Summary Card */}
+          <div className="rounded-xl border border-border bg-muted/30 p-4">
+            <p className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground mb-3">Payment Summary</p>
+            <div className="space-y-2">
+              <div className="flex justify-between text-[13px]">
+                <span className="text-muted-foreground">Service</span>
+                <span className="font-semibold text-foreground">{selectedService?.name ?? "—"}</span>
+              </div>
+              <div className="flex justify-between text-[13px]">
+                <span className="text-muted-foreground">Total Amount</span>
+                <span className="font-bold tabular-nums text-foreground">{formatTaka(totalAmount)}</span>
+              </div>
+              <div className="flex justify-between text-[13px]">
+                <span className="text-muted-foreground">Paying Now</span>
+                <span className="font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                  {formatTaka(paymentType === "Full Payment" ? totalAmount : parseFloat(firstPayment) || 0)}
+                </span>
+              </div>
+              {paymentType !== "Monthly" && (
+                <div className="flex justify-between text-[13px] border-t border-border pt-2 mt-2">
+                  <span className="text-muted-foreground">Due Later</span>
+                  <span className={cn("font-bold tabular-nums", numericDue > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400")}>
+                    {formatTaka(numericDue)}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Success Screen
+   ───────────────────────────────────────────── */
+function SuccessScreen({ patientId, patientName, onClose }: { patientId: string; patientName: string; onClose: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center px-8 py-16 text-center">
+      <div className="mb-5 grid h-20 w-20 place-items-center rounded-full bg-emerald-500/15">
+        <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+      </div>
+      <h2 className="text-2xl font-bold text-foreground">Patient Registered!</h2>
+      <p className="mt-2 text-sm text-muted-foreground max-w-sm">
+        <strong>{patientName || "New patient"}</strong> has been successfully registered and enrolled. Their profile and payment record are now active.
+      </p>
+      <div className="mt-5 flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/8 px-5 py-3">
+        <Hash className="h-4 w-4 text-emerald-500" />
+        <span className="font-mono text-lg font-bold text-emerald-600 dark:text-emerald-400">{patientId}</span>
+      </div>
+      <p className="mt-2 text-[11.5px] text-muted-foreground">Patient ID — share this with the guardian</p>
+      <Button onClick={onClose} className="mt-8 bg-emerald-600 px-8 text-white hover:bg-emerald-700 gap-2 cursor-pointer">
+        <CheckCircle2 className="h-4 w-4" />
+        Done
+      </Button>
     </div>
   );
 }

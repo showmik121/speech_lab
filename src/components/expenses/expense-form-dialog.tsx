@@ -43,21 +43,24 @@ export type ExpenseFormValues = {
   recurring: boolean;
 };
 
-const EMPTY_FORM: ExpenseFormValues = {
-  category: "Other",
-  description: "",
-  amount: "",
-  method: "Cash",
-  paidTo: "",
-  date: new Date().toISOString().slice(0, 10),
-  status: "Pending",
-  remarks: "",
-  recurring: false,
-};
+function getFreshEmptyForm(defaultCategory?: ExpenseCategory): ExpenseFormValues {
+  const todayDate = new Date().toISOString().slice(0, 10);
+  return {
+    category: defaultCategory || "Other",
+    description: "",
+    amount: "",
+    method: "Cash",
+    paidTo: "",
+    date: todayDate,
+    status: "Pending",
+    remarks: "",
+    recurring: false,
+  };
+}
 
 function toFormValues(record?: ExpenseRecord, defaultCategory?: ExpenseCategory): ExpenseFormValues {
   if (!record) {
-    return defaultCategory ? { ...EMPTY_FORM, category: defaultCategory } : EMPTY_FORM;
+    return getFreshEmptyForm(defaultCategory);
   }
   return {
     category: record.category,
@@ -65,7 +68,7 @@ function toFormValues(record?: ExpenseRecord, defaultCategory?: ExpenseCategory)
     amount: String(record.amount),
     method: record.method,
     paidTo: record.paidTo,
-    date: record.date,
+    date: record.date || new Date().toISOString().slice(0, 10),
     status: record.status,
     remarks: record.remarks,
     recurring: record.recurring,

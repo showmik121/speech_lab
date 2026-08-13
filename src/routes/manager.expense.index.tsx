@@ -29,6 +29,8 @@ import {
   type ExpenseRecord,
 } from "@/constants/expense-data";
 
+import { useExpenseStore } from "@/lib/expense-store";
+
 const PAGE_SIZE = 8;
 const TODAY = new Date(EXPENSES_TODAY_ISO);
 
@@ -59,6 +61,7 @@ function withinRange(date: string, range: string) {
 }
 
 function ExpensePage() {
+  const { expenses: records, addExpense, deleteExpense, updateExpense } = useExpenseStore();
   const [filters, setFilters] = useState<ExpenseFilterState>(DEFAULT_EXPENSE_FILTERS);
   const [page, setPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
@@ -70,7 +73,6 @@ function ExpensePage() {
     direction: "desc",
   });
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [records, setRecords] = useState<ExpenseRecord[]>(EXPENSE_RECORDS);
   const [editingRecord, setEditingRecord] = useState<ExpenseRecord | undefined>();
 
   const filtered = useMemo(() => {
@@ -139,13 +141,10 @@ function ExpensePage() {
   };
 
   const handleCreate = (values: ExpenseFormValues) => {
-    const nextNumber = records.length + 1;
-    const newRecord: ExpenseRecord = {
-      id: `exp-${String(nextNumber).padStart(3, "0")}`,
-      voucherNo: `EXP-2026-${String(nextNumber).padStart(4, "0")}`,
+    addExpense({
       category: values.category,
       description: values.description,
-      amount: Number(values.amount),
+      amount: Number(values.amount) || 0,
       method: values.method,
       paidTo: values.paidTo,
       date: values.date,
@@ -153,36 +152,29 @@ function ExpensePage() {
       status: values.status,
       remarks: values.remarks,
       recurring: values.recurring,
-    };
-    setRecords((current) => [newRecord, ...current]);
+    });
     setPage(1);
   };
 
   const handleEditSave = (values: ExpenseFormValues) => {
     if (!editingRecord) return;
-    setRecords((current) =>
-      current.map((item) =>
-        item.id === editingRecord.id
-          ? {
-              ...item,
-              category: values.category,
-              description: values.description,
-              amount: Number(values.amount),
-              method: values.method,
-              paidTo: values.paidTo,
-              date: values.date,
-              status: values.status,
-              remarks: values.remarks,
-              recurring: values.recurring,
-            }
-          : item,
-      ),
-    );
+    updateExpense({
+      ...editingRecord,
+      category: values.category,
+      description: values.description,
+      amount: Number(values.amount) || 0,
+      method: values.method,
+      paidTo: values.paidTo,
+      date: values.date,
+      status: values.status,
+      remarks: values.remarks,
+      recurring: values.recurring,
+    });
     setEditingRecord(undefined);
   };
 
   const handleDelete = (record: ExpenseRecord) => {
-    setRecords((current) => current.filter((item) => item.id !== record.id));
+    deleteExpense(record.id);
     setSelectedIds((current) => current.filter((id) => id !== record.id));
   };
 
