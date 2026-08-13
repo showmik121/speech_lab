@@ -84,7 +84,7 @@ export function NewSaleDialog({
         amount: subtotal,
         paidAmount: total,
         dueAmount: 0,
-        method: method || "Cash",
+        method: method === "Bank" ? "Bank Transfer" : method,
         remarks: remarks.trim() || `Material Sale: ${material.name} (Qty: ${qty})`,
       });
     }

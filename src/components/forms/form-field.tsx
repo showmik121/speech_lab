@@ -35,7 +35,7 @@ export function FormField({
   children,
   className,
 }: {
-  id: string;
+  id?: string;
   label: string;
   hint?: string;
   error?: string;

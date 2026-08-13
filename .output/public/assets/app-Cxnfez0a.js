@@ -1,1 +1,0 @@
-var e=`Speech Therapy ERP`,t=`Multi-Branch ERP SaaS`,n=`Multi-branch clinic management system`,r={name:`Dr. Amara Whitfield`,email:`amara.whitfield@clinic.example`,role:`Super Administrator`,initials:`AW`};export{r as i,t as n,n as r,e as t};
