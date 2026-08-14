@@ -18,10 +18,12 @@ import {
   Sparkles,
   TrendingDown,
   TrendingUp,
+  UserCheck,
   Users,
   UserPlus,
   Wallet,
   Zap,
+  ShieldAlert,
 } from "lucide-react";
 import {
   Area,
@@ -85,7 +87,15 @@ function ManagerDashboard() {
   const now = useLiveClock();
   const { dailyRevenue, dailyCount, monthlyRevenue, transactions, enrollmentRevenue, salesRevenue, sessionRevenue } =
     useRevenueStore();
-  const { activePatients, assessmentPending } = usePatientStore();
+  const {
+    activePatients,
+    assessmentPending,
+    ineligibleCount,
+    servicesDoneToday,
+    totalServicesDone,
+    serviceLogs,
+    patients,
+  } = usePatientStore();
   const { totalExpenses, dailyExpenses, monthlyExpenses } = useExpenseStore();
 
   const trendData = REVENUE_TREND["week"];
@@ -389,14 +399,14 @@ function ManagerDashboard() {
             <CardContent>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {[
-                  { label: "Register Patient", icon: UserPlus, to: "/manager/patients", color: "text-emerald-600 bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20" },
-                  { label: "Collect Payment", icon: Wallet, to: "/manager/payments/collect", color: "text-blue-600 bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/20" },
-                  { label: "New Session", icon: Activity, to: "/manager/therapy/new", color: "text-purple-600 bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/20" },
+                  { label: "Patient Details", icon: UserCheck, to: "/manager/patient-details", color: "text-emerald-600 bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20" },
+                  { label: "Register Patient", icon: UserPlus, to: "/manager/patients", color: "text-blue-600 bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/20" },
+                  { label: "Collect Payment", icon: Wallet, to: "/manager/payments/collect", color: "text-purple-600 bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/20" },
+                  { label: "New Session", icon: Activity, to: "/manager/therapy/new", color: "text-indigo-600 bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500/20" },
                   { label: "New Follow-up", icon: PhoneCall, to: "/manager/follow-up", color: "text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20" },
                   { label: "New Sale", icon: ShoppingBag, to: "/manager/sales", color: "text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/20" },
-                  { label: "View Revenue", icon: TrendingUp, to: "/manager/revenue", color: "text-indigo-600 bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500/20" },
+                  { label: "View Revenue", icon: TrendingUp, to: "/manager/revenue", color: "text-emerald-600 bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20" },
                   { label: "Expenses", icon: TrendingDown, to: "/manager/expense", color: "text-orange-600 bg-orange-500/10 hover:bg-orange-500/20 border-orange-500/20" },
-                  { label: "Inventory", icon: Boxes, to: "/manager/materials", color: "text-sky-600 bg-sky-500/10 hover:bg-sky-500/20 border-sky-500/20" },
                 ].map((action) => (
                   <Link
                     key={action.label}

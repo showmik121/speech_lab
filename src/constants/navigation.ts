@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   TrendingDown,
   TrendingUp,
+  UserCheck,
   Users,
   UsersRound,
   Video,
@@ -84,6 +85,7 @@ export const NAVIGATION: Record<WorkspaceKey, NavSection[]> = {
       title: "Modules",
       items: [
         { label: "Patients", icon: UsersRound, to: "/manager/patients" },
+        { label: "Patient Details", icon: UserCheck, to: "/manager/patient-details" },
         { label: "Therapy", icon: Activity, to: "/manager/therapy" },
         { label: "Revenue", icon: TrendingUp, to: "/manager/revenue" },
         { label: "Expense", icon: TrendingDown, to: "/manager/expense" },

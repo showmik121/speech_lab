@@ -38,6 +38,7 @@ import { Route as ManagerOutdoorIndexRouteImport } from './routes/manager.outdoo
 import { Route as ManagerOutdoorVisitIdRouteImport } from './routes/manager.outdoor.$visitId'
 import { Route as ManagerOutdoorNewRouteImport } from './routes/manager.outdoor.new'
 import { Route as ManagerPackagesIndexRouteImport } from './routes/manager.packages.index'
+import { Route as ManagerPatientDetailsIndexRouteImport } from './routes/manager.patient-details.index'
 import { Route as ManagerPatientsIndexRouteImport } from './routes/manager.patients.index'
 import { Route as ManagerPatientsPatientIdRouteImport } from './routes/manager.patients.$patientId'
 import { Route as ManagerPaymentsIndexRouteImport } from './routes/manager.payments.index'
@@ -199,6 +200,12 @@ const ManagerPackagesIndexRoute = ManagerPackagesIndexRouteImport.update({
   path: '/packages/',
   getParentRoute: () => ManagerRoute,
 } as any)
+const ManagerPatientDetailsIndexRoute =
+  ManagerPatientDetailsIndexRouteImport.update({
+    id: '/patient-details/',
+    path: '/patient-details/',
+    getParentRoute: () => ManagerRoute,
+  } as any)
 const ManagerPatientsIndexRoute = ManagerPatientsIndexRouteImport.update({
   id: '/patients/',
   path: '/patients/',
@@ -295,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/manager/materials/': typeof ManagerMaterialsIndexRoute
   '/manager/outdoor/': typeof ManagerOutdoorIndexRoute
   '/manager/packages/': typeof ManagerPackagesIndexRoute
+  '/manager/patient-details/': typeof ManagerPatientDetailsIndexRoute
   '/manager/patients/': typeof ManagerPatientsIndexRoute
   '/manager/payments/': typeof ManagerPaymentsIndexRoute
   '/manager/therapy/': typeof ManagerTherapyIndexRoute
@@ -334,6 +342,7 @@ export interface FileRoutesByTo {
   '/manager/materials': typeof ManagerMaterialsIndexRoute
   '/manager/outdoor': typeof ManagerOutdoorIndexRoute
   '/manager/packages': typeof ManagerPackagesIndexRoute
+  '/manager/patient-details': typeof ManagerPatientDetailsIndexRoute
   '/manager/patients': typeof ManagerPatientsIndexRoute
   '/manager/payments': typeof ManagerPaymentsIndexRoute
   '/manager/therapy': typeof ManagerTherapyIndexRoute
@@ -377,6 +386,7 @@ export interface FileRoutesById {
   '/manager/materials/': typeof ManagerMaterialsIndexRoute
   '/manager/outdoor/': typeof ManagerOutdoorIndexRoute
   '/manager/packages/': typeof ManagerPackagesIndexRoute
+  '/manager/patient-details/': typeof ManagerPatientDetailsIndexRoute
   '/manager/patients/': typeof ManagerPatientsIndexRoute
   '/manager/payments/': typeof ManagerPaymentsIndexRoute
   '/manager/therapy/': typeof ManagerTherapyIndexRoute
@@ -421,6 +431,7 @@ export interface FileRouteTypes {
     | '/manager/materials/'
     | '/manager/outdoor/'
     | '/manager/packages/'
+    | '/manager/patient-details/'
     | '/manager/patients/'
     | '/manager/payments/'
     | '/manager/therapy/'
@@ -460,6 +471,7 @@ export interface FileRouteTypes {
     | '/manager/materials'
     | '/manager/outdoor'
     | '/manager/packages'
+    | '/manager/patient-details'
     | '/manager/patients'
     | '/manager/payments'
     | '/manager/therapy'
@@ -502,6 +514,7 @@ export interface FileRouteTypes {
     | '/manager/materials/'
     | '/manager/outdoor/'
     | '/manager/packages/'
+    | '/manager/patient-details/'
     | '/manager/patients/'
     | '/manager/payments/'
     | '/manager/therapy/'
@@ -720,6 +733,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ManagerPackagesIndexRouteImport
       parentRoute: typeof ManagerRoute
     }
+    '/manager/patient-details/': {
+      id: '/manager/patient-details/'
+      path: '/patient-details'
+      fullPath: '/manager/patient-details/'
+      preLoaderRoute: typeof ManagerPatientDetailsIndexRouteImport
+      parentRoute: typeof ManagerRoute
+    }
     '/manager/patients/': {
       id: '/manager/patients/'
       path: '/patients'
@@ -842,6 +862,7 @@ interface ManagerRouteChildren {
   ManagerMaterialsIndexRoute: typeof ManagerMaterialsIndexRoute
   ManagerOutdoorIndexRoute: typeof ManagerOutdoorIndexRoute
   ManagerPackagesIndexRoute: typeof ManagerPackagesIndexRoute
+  ManagerPatientDetailsIndexRoute: typeof ManagerPatientDetailsIndexRoute
   ManagerPatientsIndexRoute: typeof ManagerPatientsIndexRoute
   ManagerPaymentsIndexRoute: typeof ManagerPaymentsIndexRoute
   ManagerTherapyIndexRoute: typeof ManagerTherapyIndexRoute
@@ -873,6 +894,7 @@ const ManagerRouteChildren: ManagerRouteChildren = {
   ManagerMaterialsIndexRoute: ManagerMaterialsIndexRoute,
   ManagerOutdoorIndexRoute: ManagerOutdoorIndexRoute,
   ManagerPackagesIndexRoute: ManagerPackagesIndexRoute,
+  ManagerPatientDetailsIndexRoute: ManagerPatientDetailsIndexRoute,
   ManagerPatientsIndexRoute: ManagerPatientsIndexRoute,
   ManagerPaymentsIndexRoute: ManagerPaymentsIndexRoute,
   ManagerTherapyIndexRoute: ManagerTherapyIndexRoute,
